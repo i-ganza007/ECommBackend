@@ -10,9 +10,9 @@ namespace ECommBackend.Models.ModInterfaces
     {
         public Guid OrderId { get; set; }
         public decimal TotalPrice { get; set; }
-        public UserModel OrderCreator { get; set; }
+        public UserModel OrderCreator { get; init; }
 
-        public ProductModel[] Products { get; set; }
+        public ProductModel[] Products { get; init; }
         public DateTime CreatedDate { get; set; }
         public OrderStatus OrderStatus { get; set; }
     }

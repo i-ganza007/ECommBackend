@@ -6,31 +6,31 @@ namespace ECommBackend.Models
 {
     public class AdminModel:IUser
     {
-        public required Guid userId { get; set; }
+        public required Guid UserId { get; set; }
         public required string FirstName { get; set; }
 
         public required string LastName { get; set; }
 
         public required string Email { get; set; }
         public required int Age { get; set; }
-        private string Password { get; set; }
-        private string RefreshToken { get; set; }
+        public string Password { get; private set; }
+        public string RefreshToken { get; private set; }
 
         public ProductModel[]? ProductOwned { get; set; }
         public required DateTime CreatedDate { get; set; }
         public DateTime? UpdatedAt { get; set; }
 
         [SetsRequiredMembers] // Because compiler doesn't trust you to initialise the required properties so need this, If not complaints
-        public AdminModel(Guid _userId, string _firstName, string _lastName, string _email, int _age, string _password, string _refreshToken,DateTime _createdTime)
+        public AdminModel(Guid userId, string firstName, string lastName, string email, int age, string password, string refreshToken, DateTime createdDate)
         {
-            userId = _userId;
-            FirstName = _firstName;
-            LastName = _lastName;
-            CreatedDate = _createdTime;
-            Email = _email;
-            Age = _age;
-            Password = _password;
-            RefreshToken = _refreshToken;
+            UserId = userId;
+            FirstName = firstName;
+            LastName = lastName;
+            Email = email;
+            Age = age;
+            Password = password;
+            RefreshToken = refreshToken;
+            CreatedDate = createdDate;
         }
 
         public string PasswordChanger(string password)

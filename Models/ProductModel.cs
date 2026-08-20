@@ -1,5 +1,6 @@
 using ECommBackend.Models.ModInterfaces;
 using System.ComponentModel.DataAnnotations;
+using System.Diagnostics.CodeAnalysis;
 
 namespace ECommBackend.Models
 {
@@ -11,22 +12,22 @@ namespace ECommBackend.Models
        
         public required string Description { get; set; }
         
-        private  decimal Price { get; set; }
+        public  decimal Price { get; private set; } // It's not advised to make these private because c# think that you're trying to initialise it from the outside yet it's private
      
         public required DateTime CreatedAt { get; set; }
 
         public DateTime? UpdateAt { get; set; }
       
-        public required AdminModel Owner { get; set; }
+        public required AdminModel Owner { get; init; }
 
-        public ProductModel(Guid _productId,string _name,string _description,decimal _price,DateTime _createdAt,AdminModel _owner) {
-        ProductId = _productId;
-        Name = _name;
-        Description = _description;
-        Price = _price;
-        CreatedAt = _createdAt;
-        Owner = _owner;
-          
+        [SetsRequiredMembers]
+        public ProductModel(Guid productId, string name, string description, decimal price, DateTime createdAt) {
+        ProductId = productId;
+        Name = name;
+        Description = description;
+        Price = price;
+        CreatedAt = createdAt;
+            Price = price;
         }
 
         public decimal PriceChanger(decimal newPrice) { 

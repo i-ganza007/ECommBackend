@@ -1,25 +1,25 @@
-using System.ComponentModel.DataAnnotations;
+using SydAnnotations =  System.ComponentModel.DataAnnotations;
 namespace ECommBackend.Models.ModInterfaces
 {
     public interface IUser
     {
-        [Key]
-        public Guid userId { get; set; }
-        [Required]
-        [Length(3, 10)]
+        [SydAnnotations.Key]
+        public Guid UserId { get; set; }
+        [SydAnnotations.Required]
+        [SydAnnotations.Length(3, 10)]
         public string FirstName { get; set; }
-        [Required]
-        [Length(3,10)]
+        [SydAnnotations.Required]
+        [SydAnnotations.Length(3,10)]
         public string LastName { get; set; }
-        [EmailAddress]
-        [Required]
+        [SydAnnotations.EmailAddress]
+        [SydAnnotations.Required]
         public string Email { get; set; }
-        [Range(18,100)]
-        [Required]
+        [SydAnnotations.Range(18,100)]
+        [SydAnnotations.Required]
         public int Age { get; set; }
-        [Required]
+        [SydAnnotations.Required]
         public DateTime CreatedDate { get; set; }
-        [Required]
+        [SydAnnotations.Required]
         public DateTime? UpdatedAt { get; set; }
 
     }

@@ -10,5 +10,15 @@ namespace ECommBackend.DatabaseConns
         public DbSet<ProductModel> Products { get; set; }
 
         public SQLiteConn(DbContextOptions<SQLiteConn> options) : base(options) { }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<UserModel>().HasKey(user => user.UserId);
+            modelBuilder.Entity<AdminModel>().HasKey(admin => admin.UserId);
+            modelBuilder.Entity<OrderModel>().HasKey(order => order.OrderId);
+            modelBuilder.Entity<ProductModel>().HasKey(product => product.ProductId);
+
+            base.OnModelCreating(modelBuilder);
+        }
     }
 }

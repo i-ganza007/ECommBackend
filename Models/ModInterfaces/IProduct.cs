@@ -18,6 +18,6 @@ namespace ECommBackend.Models.ModInterfaces
 
         public DateTime? UpdateAt { get; set; }
         [Required]
-        public AdminModel Owner { get; set;  }
+        public AdminModel Owner { get; init;  }
     }
 }

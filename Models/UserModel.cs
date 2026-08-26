@@ -1,43 +1,57 @@
 using ECommBackend.Models.ModInterfaces;
 using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
-using System.Security.Cryptography.X509Certificates;
 namespace ECommBackend.Models
 {
     public class UserModel:IUser
     {
+        [Key]
+        
         public required Guid UserId { get; set; }
+        [Required]
+        [Length(3,10)]
         public required string FirstName { get; set; }
-
+        [Required]
+        [Length(3, 10)]
         public required string LastName { get; set; }
-
+        [EmailAddress]
         public required string Email { get; set; }
+        [Range(18,100)]
         public required int Age { get; set; }
+        [Required]
         public string Password { get; private set; }
+
         public string RefreshToken { get; private set; }
 
-        public ProductModel[]? ProductsBought { get; set; }
+        public ICollection<ProductModel> ProductsBought { get; set; } = new List<ProductModel>();
+        [Required]
         public required DateTime CreatedDate { get; set; }
         public DateTime? UpdatedAt { get; set; }
-        public OrderModel[]? OrderOrders { get; set; } 
+        public ICollection<OrderModel> Orders { get; set; } = new List<OrderModel>();
 
         [SetsRequiredMembers] // Because compiler doesn't trust you to initialise the required properties so need this, If not complaints
-        public UserModel(Guid userId, string firstName, string lastName, string email, int age, string password, string refreshToken, DateTime createdDate)
+        public UserModel(Guid userId, string firstName, string lastName, string email, int age, string password, string refreshToken)
         {
             UserId = userId;
             FirstName = firstName;
             LastName = lastName;
-            CreatedDate = createdDate;
             Email = email;
             Age = age;
             Password = password;
             RefreshToken = refreshToken;
         }
 
-        public string PasswordChanger(string password)
+        public void ChangePassword(string newPassword)
         {
-            Password = password;
-            return Password;
+            if (string.IsNullOrEmpty(newPassword))
+            {
+                throw new ArgumentException("Password cannot be empty");
+            }
+            if (Password == newPassword)
+            {
+                throw new ArgumentException("Cannot have the same password must have a new one");
+            }
+            Password = newPassword;
         }
 
         public string RefreshTokenChanger(string newRefreshToken)

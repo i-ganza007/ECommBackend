@@ -10,6 +10,10 @@ builder.Services.AddDbContext<SQLiteConn>(options =>
 {
     options.UseSqlite(builder.Configuration.GetConnectionString("ECommSQLite"));
 });
+//builder.Services.AddDbContext<SQLConn>(options =>
+//{
+//    options.UseSql(builder.Configuration.GetConnectionString("ECommSQLite"));
+//});
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

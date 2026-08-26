@@ -1,6 +1,41 @@
+using System.ComponentModel.DataAnnotations;
+using System.Diagnostics.CodeAnalysis;
+
 namespace ECommBackend.Models
 {
     public class VariantModel
     {
+        [Key]
+        public Guid VariantId { get; set; }
+
+        [Range(0.01, double.MaxValue)]
+        public double Size { get; set; }
+
+        public decimal Price { get; set; }
+
+        [Range(1, int.MaxValue)]
+        public int Units { get; set; }
+
+        public Guid VariantImageId { get; set; }
+
+        public ImageModel VariantImage { get; set; } = null!;
+
+        public VariantModel()
+        {
+        }
+
+        public VariantModel(
+            Guid variantId,
+            double size,
+            decimal price,
+            int units,
+            Guid variantImageId)
+        {
+            VariantId = variantId;
+            Size = size;
+            Price = price;
+            Units = units;
+            VariantImageId = variantImageId;
+        }
     }
 }

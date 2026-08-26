@@ -1,6 +1,7 @@
-using NUnit.Framework;
+//using NUnit.Framework;
 
-namespace ECommBackend.Tests
-{
-
-}
+//namespace ECommBackend.Tests
+//{
+//    [TestFixture]
+//    public class ProductModelTests { }
+//}

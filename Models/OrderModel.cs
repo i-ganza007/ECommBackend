@@ -15,7 +15,7 @@ namespace ECommBackend.Models
         public required UserModel OrderCreator { get; init; } // Will fail because of bind to other entities or tables 
 
         [Required]
-        public required ICollection<ProductModel> Products { get; init; }
+        public required ICollection<ProductModel> Products { get; init; } = new List<ProductModel>();
         [Required]
         public required DateTime CreatedDate { get; set; }
         [Required]

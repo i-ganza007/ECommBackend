@@ -25,8 +25,7 @@ namespace ECommBackend.Models
         public string RefreshToken { get; private set; }
 
         public ICollection<ProductModel> ProductsOwned { get; set; } = new List<ProductModel>();
-        [Required]
-        public required DateTime CreatedDate { get; set; }
+        public  DateTime CreatedDate { get; set; } = DateTime.Now;
         public DateTime? UpdatedAt { get; set; }
 
         [SetsRequiredMembers] // Because compiler doesn't trust you to initialise the required properties so need this, If not complaints

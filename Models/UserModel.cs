@@ -25,7 +25,7 @@ namespace ECommBackend.Models
 
         public ICollection<ProductModel> ProductsBought { get; set; } = new List<ProductModel>();
         [Required]
-        public required DateTime CreatedDate { get; set; }
+        public DateTime CreatedDate { get; set; } = DateTime.Now;
         public DateTime? UpdatedAt { get; set; }
         public ICollection<OrderModel> Orders { get; set; } = new List<OrderModel>();
 

@@ -54,7 +54,28 @@ namespace ECommBackend.Migrations
 
                     b.HasKey("UserId");
 
+                    b.HasIndex("Email")
+                        .IsUnique();
+
                     b.ToTable("Admins");
+                });
+
+            modelBuilder.Entity("ECommBackend.Models.ImageModel", b =>
+                {
+                    b.Property<Guid>("ImageId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<byte[]>("BytesArray")
+                        .IsRequired()
+                        .HasColumnType("BLOB");
+
+                    b.Property<int>("BytesSize")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("ImageId");
+
+                    b.ToTable("Images");
                 });
 
             modelBuilder.Entity("ECommBackend.Models.OrderModel", b =>
@@ -66,18 +87,18 @@ namespace ECommBackend.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("TEXT");
 
-                    b.Property<Guid>("OrderCreatorUserId")
+                    b.Property<Guid>("OrderCreatorId")
                         .HasColumnType("TEXT");
 
                     b.Property<int>("OrderStatus")
                         .HasColumnType("INTEGER");
 
-                    b.Property<decimal>("TotalPrice")
-                        .HasColumnType("TEXT");
+                    b.Property<double>("TotalPrice")
+                        .HasColumnType("REAL");
 
                     b.HasKey("OrderId");
 
-                    b.HasIndex("OrderCreatorUserId");
+                    b.HasIndex("OrderCreatorId");
 
                     b.ToTable("Orders");
                 });
@@ -88,6 +109,16 @@ namespace ECommBackend.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT");
 
+                    b.Property<Guid>("AdminOwnerId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Base_SKU")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Category")
+                        .HasColumnType("INTEGER");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
 
@@ -95,17 +126,20 @@ namespace ECommBackend.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("Name")
-                        .IsRequired()
+                    b.Property<string>("Key_Ingr")
                         .HasColumnType("TEXT");
 
-                    b.Property<Guid?>("OrderModelOrderId")
+                    b.Property<string>("Name")
+                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<Guid>("OwnerUserId")
                         .HasColumnType("TEXT");
 
-                    b.Property<decimal>("Price")
+                    b.Property<string>("Skin_Type")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Texture")
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("UpdateAt")
@@ -116,9 +150,16 @@ namespace ECommBackend.Migrations
 
                     b.HasKey("ProductId");
 
-                    b.HasIndex("OrderModelOrderId");
+                    b.HasIndex("Base_SKU")
+                        .IsUnique();
+
+                    b.HasIndex("Name")
+                        .IsUnique();
 
                     b.HasIndex("OwnerUserId");
+
+                    b.HasIndex("ProductId")
+                        .IsUnique();
 
                     b.HasIndex("UserModelUserId");
 
@@ -162,14 +203,72 @@ namespace ECommBackend.Migrations
 
                     b.HasKey("UserId");
 
+                    b.HasIndex("Email")
+                        .IsUnique();
+
                     b.ToTable("Users");
+                });
+
+            modelBuilder.Entity("ECommBackend.Models.VariantModel", b =>
+                {
+                    b.Property<Guid>("VariantId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("Price")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("ProductModelId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<double>("Size")
+                        .HasColumnType("REAL");
+
+                    b.Property<int>("Units")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("VariantImageId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("VariantId");
+
+                    b.HasIndex("Price")
+                        .IsUnique();
+
+                    b.HasIndex("ProductModelId");
+
+                    b.HasIndex("Size")
+                        .IsUnique();
+
+                    b.HasIndex("VariantId")
+                        .IsUnique();
+
+                    b.HasIndex("VariantImageId")
+                        .IsUnique();
+
+                    b.ToTable("Variants");
+                });
+
+            modelBuilder.Entity("OrderProducts", b =>
+                {
+                    b.Property<Guid>("OrderModelOrderId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("ProductsProductId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("OrderModelOrderId", "ProductsProductId");
+
+                    b.HasIndex("ProductsProductId");
+
+                    b.ToTable("OrderProducts");
                 });
 
             modelBuilder.Entity("ECommBackend.Models.OrderModel", b =>
                 {
                     b.HasOne("ECommBackend.Models.UserModel", "OrderCreator")
-                        .WithMany("OrderOrders")
-                        .HasForeignKey("OrderCreatorUserId")
+                        .WithMany("Orders")
+                        .HasForeignKey("OrderCreatorId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -178,14 +277,10 @@ namespace ECommBackend.Migrations
 
             modelBuilder.Entity("ECommBackend.Models.ProductModel", b =>
                 {
-                    b.HasOne("ECommBackend.Models.OrderModel", null)
-                        .WithMany("Products")
-                        .HasForeignKey("OrderModelOrderId");
-
                     b.HasOne("ECommBackend.Models.AdminModel", "Owner")
-                        .WithMany("ProductOwned")
+                        .WithMany("ProductsOwned")
                         .HasForeignKey("OwnerUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("ECommBackend.Models.UserModel", null)
@@ -195,19 +290,53 @@ namespace ECommBackend.Migrations
                     b.Navigation("Owner");
                 });
 
-            modelBuilder.Entity("ECommBackend.Models.AdminModel", b =>
+            modelBuilder.Entity("ECommBackend.Models.VariantModel", b =>
                 {
-                    b.Navigation("ProductOwned");
+                    b.HasOne("ECommBackend.Models.ProductModel", "Product")
+                        .WithMany("Variants")
+                        .HasForeignKey("ProductModelId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ECommBackend.Models.ImageModel", "VariantImage")
+                        .WithOne()
+                        .HasForeignKey("ECommBackend.Models.VariantModel", "VariantImageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+
+                    b.Navigation("VariantImage");
                 });
 
-            modelBuilder.Entity("ECommBackend.Models.OrderModel", b =>
+            modelBuilder.Entity("OrderProducts", b =>
                 {
-                    b.Navigation("Products");
+                    b.HasOne("ECommBackend.Models.OrderModel", null)
+                        .WithMany()
+                        .HasForeignKey("OrderModelOrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ECommBackend.Models.ProductModel", null)
+                        .WithMany()
+                        .HasForeignKey("ProductsProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("ECommBackend.Models.AdminModel", b =>
+                {
+                    b.Navigation("ProductsOwned");
+                });
+
+            modelBuilder.Entity("ECommBackend.Models.ProductModel", b =>
+                {
+                    b.Navigation("Variants");
                 });
 
             modelBuilder.Entity("ECommBackend.Models.UserModel", b =>
                 {
-                    b.Navigation("OrderOrders");
+                    b.Navigation("Orders");
 
                     b.Navigation("ProductsBought");
                 });

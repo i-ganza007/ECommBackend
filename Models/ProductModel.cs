@@ -25,7 +25,7 @@ namespace ECommBackend.Models
 
         [Required]
         
-        public required List<VariantModel> Variants { get; set; }
+        public  ICollection<VariantModel> Variants { get; set; } = new List<VariantModel>();
 
 
         [Required]
@@ -45,17 +45,18 @@ namespace ECommBackend.Models
         public  DateTime CreatedAt { get; set; } = DateTime.Now;
 
         public DateTime? UpdateAt { get; set; }
+
         [Required]
-        public required AdminModel Owner { get; init; }
+        public Guid AdminOwnerId { get; set; }
+        public  AdminModel Owner { get; set; } = null!;
 
         [SetsRequiredMembers]
-        public ProductModel(Guid productId, string base_SKU, string name, List<VariantModel> variants, string description,AdminModel owner) {
+        public ProductModel(Guid productId, string base_SKU, string name,  string description, Guid adminOwnerId) {
         ProductId = productId;
         Name = name;
-        Variants = variants;
         Description = description;
         Base_SKU = base_SKU;
-        Owner = owner;
+        AdminOwnerId = adminOwnerId;
         }
 
 

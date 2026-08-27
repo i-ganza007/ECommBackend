@@ -20,6 +20,10 @@ namespace ECommBackend.Models
 
         public ImageModel VariantImage { get; set; } = null!;
 
+        public Guid ProductModelId { get; set; }
+
+        public ProductModel Product { get; set; } = null!;
+
         public VariantModel()
         {
         }
@@ -28,12 +32,14 @@ namespace ECommBackend.Models
             Guid variantId,
             double size,
             decimal price,
+            Guid productModelId,
             int units,
             Guid variantImageId)
         {
             VariantId = variantId;
             Size = size;
             Price = price;
+            ProductModelId = productModelId;
             Units = units;
             VariantImageId = variantImageId;
         }

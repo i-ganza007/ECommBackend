@@ -10,7 +10,9 @@ namespace ECommBackend.Models.ModInterfaces
     {
         public Guid OrderId { get; set; }
         public double TotalPrice { get; set; }
-        public UserModel OrderCreator { get; init; }
+
+        public Guid OrderCreatorId { get; set; }
+        public UserModel OrderCreator { get; set; }
 
         public ICollection<ProductModel> Products { get; init; }
         public DateTime CreatedDate { get; set; }

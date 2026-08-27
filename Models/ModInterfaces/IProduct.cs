@@ -33,11 +33,13 @@ namespace ECommBackend.Models.ModInterfaces
 
         public string? Key_Ingr { get; set;  }
 
-        public List<VariantModel> Variants { get; set; }
+        public ICollection<VariantModel> Variants { get; set; }
 
         public DateTime CreatedAt { get; set; }
 
         public DateTime? UpdateAt { get; set; }
-        public AdminModel Owner { get; init;  }
+
+        public Guid AdminOwnerId { get; set; }
+        public AdminModel Owner { get; set;  }
     }
 }

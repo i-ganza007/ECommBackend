@@ -45,8 +45,29 @@ namespace ECommBackend.DatabaseConns
             // Product-Variant relationship
             modelBuilder.Entity<ProductModel>()
                 .HasMany(p => p.Variants)
-                .WithOne()
+                .WithOne(o=>o.Product)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // Product Id Key
+            modelBuilder.Entity<ProductModel>()
+            .HasIndex(v => v.ProductId).IsUnique();
+
+            // Product Name Key
+            modelBuilder.Entity<ProductModel>()
+            .HasIndex(v => v.Name).IsUnique();
+
+            // Variant Index Key
+            modelBuilder.Entity<VariantModel>()
+            .HasIndex(v => v.VariantId).IsUnique();
+
+            // Variant Price Key
+            modelBuilder.Entity<VariantModel>()
+            .HasIndex(v => v.Price).IsUnique();
+
+
+            // Variant Size Key
+            modelBuilder.Entity<VariantModel>()
+            .HasIndex(v => v.Size).IsUnique();
 
             // Variant-Image relationship
             modelBuilder.Entity<VariantModel>()

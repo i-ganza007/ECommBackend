@@ -1,6 +1,8 @@
-﻿namespace ECommBackend.Repositories
+using ECommBackend.Repositories.RepoInterfaces;
+
+namespace ECommBackend.Repositories
 {
-    public class AdminRepo
+    public class AdminRepo:IAdminRepo
     {
     }
 }

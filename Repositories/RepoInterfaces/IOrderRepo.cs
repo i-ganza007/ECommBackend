@@ -9,6 +9,6 @@ namespace ECommBackend.Repositories.RepoInterfaces
 
         public Task CreateOrder(OrderModel order);
 
-        public Task<UserModel> GetOrderCreator(Guid _userId, CancellationToken ctx);)
+        public Task<UserModel> GetOrderCreator(Guid _userId, CancellationToken ctx);
     }
 }

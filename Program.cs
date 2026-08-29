@@ -1,3 +1,4 @@
+using ECommBackend.CustomErrors.ExceptionFilterLayer;
 using ECommBackend.DatabaseConns;
 using ECommBackend.Models;
 using Microsoft.EntityFrameworkCore;
@@ -30,6 +31,7 @@ app.UseRouting();
 app.UseAuthorization();
 
 app.MapControllers();
+app.UseMiddleware<GlobalExceptionLayer>();
 
 
 app.Run();

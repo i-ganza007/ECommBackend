@@ -1,3 +1,4 @@
+using ECommBackend.CustomErrors;
 using ECommBackend.DatabaseConns;
 using ECommBackend.Models;
 using ECommBackend.Repositories.RepoInterfaces;
@@ -17,7 +18,7 @@ namespace ECommBackend.Repositories
           var result = await _SQLiteConn.Images.FirstOrDefaultAsync(x=>x.ImageId == _imageId,ctx);
             if (result == null)
             {
-                throw new KeyNotFoundException($"{nameof(_imageId)} doesn't exist as image ");
+                throw new ImageNotFoundError(_imageId,$"{nameof(_imageId)} doesn't exist");
             }
             return result;
         }

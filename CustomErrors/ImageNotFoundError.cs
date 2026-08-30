@@ -1,5 +1,6 @@
 namespace ECommBackend.CustomErrors
 {
+    [Serializable]
     public class ImageNotFoundError : Exception
     {
         public Guid ImageId { get; set; }

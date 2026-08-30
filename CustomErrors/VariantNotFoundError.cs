@@ -1,5 +1,7 @@
 namespace ECommBackend.CustomErrors
 {
+    [Serializable]
+
     public class VariantNotFoundError : Exception
     {
         public Guid VariantId { get; set; }

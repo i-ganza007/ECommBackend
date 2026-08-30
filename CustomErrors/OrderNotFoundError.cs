@@ -1,5 +1,7 @@
 namespace ECommBackend.CustomErrors
 {
+    [Serializable]
+
     public class OrderNotFoundException : Exception
     {
         public Guid OrderId { get; }

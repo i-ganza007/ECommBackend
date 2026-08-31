@@ -1,8 +1,19 @@
+using ECommBackend.DatabaseConns;
+using ECommBackend.Models;
+using Microsoft.EntityFrameworkCore;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddControllersWithViews();
-
+builder.Services.AddControllers();
+builder.Services.AddDbContext<SQLiteConn>(options =>
+{
+    options.UseSqlite(builder.Configuration.GetConnectionString("ECommSQLite"));
+});
+//builder.Services.AddDbContext<SQLConn>(options =>
+//{
+//    options.UseSql(builder.Configuration.GetConnectionString("ECommSQLite"));
+//});
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -18,12 +29,7 @@ app.UseRouting();
 
 app.UseAuthorization();
 
-app.MapStaticAssets();
-
-app.MapControllerRoute(
-    name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}")
-    .WithStaticAssets();
+app.MapControllers();
 
 
 app.Run();

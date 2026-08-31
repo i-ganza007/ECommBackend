@@ -21,9 +21,9 @@ namespace ECommBackend.Repositories
             return result;
         }
 
-        public async Task<UserModel?> GetSingleAdmin(CancellationToken ctx, Guid _userId)
+        public async Task<AdminModel?> GetSingleAdmin(CancellationToken ctx, Guid _userId)
         {
-            var result = await _SQLiteConn.Admins.FirstAsync(x => x.User == _userId);
+            var result = await _SQLiteConn.Admins.FirstAsync(x => x.UserId == _userId);
             if (result == null)
             {
                 throw new KeyNotFoundException($"{nameof(_userId)} doesn't exist");
@@ -34,12 +34,12 @@ namespace ECommBackend.Repositories
         {
 
             var result = await _SQLiteConn.Admins.FirstAsync(x => x.UserId == _userId, ctx);
-            var result_removed = _SQLiteConn.Users.Remove(result);
+            var result_removed = _SQLiteConn.Admins.Remove(result);
             await _SQLiteConn.SaveChangesAsync(ctx);
         }
         public async Task CreateAdmin(CancellationToken ctx, AdminModel _admin)
         {
-            var result = _SQLiteConn.Users.Add(_user);
+            var result = _SQLiteConn.Admins.Add(_admin);
             await _SQLiteConn.SaveChangesAsync(ctx);
         }
     }

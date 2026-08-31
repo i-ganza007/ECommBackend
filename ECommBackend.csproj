@@ -12,6 +12,7 @@
 		<GenerateAssemblyDescriptionAttribute>false</GenerateAssemblyDescriptionAttribute>
 		<GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
 		<GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
+		<UserSecretsId>8f5a7277-113e-4e08-b016-5a813dff874a</UserSecretsId>
 	</PropertyGroup>
 
 	

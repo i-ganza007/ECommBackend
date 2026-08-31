@@ -31,7 +31,9 @@ app.UseRouting();
 app.UseAuthorization();
 
 app.MapControllers();
+app.UseMiddleware<OperationCancelledHandler>();
 app.UseMiddleware<GlobalExceptionLayer>();
+
 
 
 app.Run();

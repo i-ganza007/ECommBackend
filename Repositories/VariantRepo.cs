@@ -49,7 +49,7 @@ namespace ECommBackend.Repositories
         }
 
         public async Task DeleteAllVariantsForProduct(Guid _productId, CancellationToken ctx) {
-            var check = await _SQLiteConn.Products.FindAsync(x => x.ProductId == _productId);
+            var check = await _SQLiteConn.Products.FirstOrDefaultAsync(x=>x.ProductId == _productId);
             if (check == null)
             {
                 throw new KeyNotFoundException($"{_productId} doesn't exist ");

@@ -2,7 +2,7 @@ using ECommBackend.Models;
 using NUnit.Framework;
 using System.ComponentModel.DataAnnotations;
 
-namespace ECommBackend.Tests.Models
+namespace ECommBackend.Tests
 {
     [TestFixture]
     internal class VariantModelTests

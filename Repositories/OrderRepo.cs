@@ -29,12 +29,12 @@ namespace ECommBackend.Repositories
         public async  Task CreateOrder(OrderModel order) { }
 
         public async Task<UserModel> GetOrderCreator(Guid _userId, CancellationToken ctx) {
-            var result = await _SQLiteConn.Orders.FirstAsync(x => x.OrderCreatorId == _userId, ctx);
+            var result = await _SQLiteConn.Orders.FirstOrDefaultAsync(x => x.OrderCreatorId == _userId, ctx);
             if (result == null)
             {
                 throw new Exception($"OrderOwner {_SQLiteConn} can't be found ");
             }
-            return result;
+            return result?.OrderCreator;
 
         }
     }

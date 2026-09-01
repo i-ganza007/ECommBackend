@@ -59,6 +59,34 @@ namespace ECommBackend.Models
         AdminOwnerId = adminOwnerId;
         }
 
-
+        public void Deconstruct(
+        out Guid productId,
+        out string name,
+        out string description,
+        out ProductCategory category,
+        out ICollection<VariantModel> variants,
+        out string baseSku,
+        out string? texture,
+        out string? skinType,
+        out string? keyIngr,
+        out DateTime createdAt,
+        out DateTime? updateAt,
+        out Guid adminOwnerId,
+        out AdminModel owner)
+            {
+                productId = ProductId;
+                name = Name;
+                description = Description;
+                category = Category;
+                variants = Variants;
+                baseSku = Base_SKU;
+                texture = Texture;
+                skinType = Skin_Type;
+                keyIngr = Key_Ingr;
+                createdAt = CreatedAt;
+                updateAt = UpdateAt;
+                adminOwnerId = AdminOwnerId;
+                owner = Owner;
+        }
     }
 }

@@ -35,6 +35,7 @@ namespace ECommBackend.Repositories
             var result_removed = _SQLiteConn.Products.Remove(result);
             await _SQLiteConn.SaveChangesAsync(ctx);
 
+
         }
 
         public async Task CreateProduct(ProductModel newProductModel, CancellationToken ctx) {

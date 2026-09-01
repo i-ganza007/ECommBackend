@@ -59,5 +59,8 @@ namespace ECommBackend.Models
             RefreshToken = newRefreshToken;
             return RefreshToken;
         }
+
+        public void Deconstruct(out Guid userId, out string firstName, out string lastName, out string email, out int age, out string password, out string refreshToken)
+        { userId = UserId; firstName = FirstName; lastName = LastName; email = Email; age = Age; password = Password; refreshToken = RefreshToken; }
     }
 }

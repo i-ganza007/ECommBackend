@@ -2,7 +2,8 @@ using ECommBackend.Models;
 using NUnit.Framework;
 namespace ECommBackend.Tests;
 
-public class UserModelTests
+[TestFixture]
+internal class UserModelTests
 {
     private UserModel CreateUser()
     {

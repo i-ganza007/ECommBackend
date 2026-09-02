@@ -24,7 +24,7 @@ builder.Services.AddScoped<AdminService>();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<OrderService>();
 builder.Services.AddScoped<ImageService>();
-
+builder.Services.AddOptions<JwtSettings>().BindConfiguration("JWTSettings");
 //builder.Services.AddDbContext<SQLConn>(options =>
 //{
 //    options.UseSql(builder.Configuration.GetConnectionString("ECommSQLite"));

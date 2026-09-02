@@ -43,5 +43,8 @@ namespace ECommBackend.Models
             Units = units;
             VariantImageId = variantImageId;
         }
+
+        public void Deconstruct(out Guid variantId, out double size, out decimal price, out Guid productModelId, out int units, out Guid variantImageId) 
+        { variantId = VariantId; size = Size; price = Price; productModelId = ProductModelId; units = Units; variantImageId = VariantImageId; }
     }
 }

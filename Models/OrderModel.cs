@@ -1,6 +1,7 @@
+using ECommBackend.DTOs;
 using ECommBackend.Models.ModInterfaces;
-using System.Diagnostics.CodeAnalysis;
 using System.ComponentModel.DataAnnotations;
+using System.Diagnostics.CodeAnalysis;
 namespace ECommBackend.Models
 {
     public class OrderModel: IOrder
@@ -30,6 +31,29 @@ namespace ECommBackend.Models
             OrderCreatorId = orderCreatorId;
             CreatedDate = createdDate;
             OrderStatus = orderStatus;
+        }
+
+        public void Deconstruct(
+    out Guid orderId,
+    out double totalPrice,
+    out UserDTO orderCreator,
+    out Guid orderCreatorId,
+    out ICollection<ProductDTO> products,
+    out DateTime createdDate,
+    out OrderStatus orderStatus)
+        {
+            orderId = OrderId;
+            totalPrice = TotalPrice;
+            orderCreator = OrderCreator.MapToDTO();
+
+            orderCreatorId = OrderCreatorId;
+
+            products = Products
+                .Select(product => product.MapToDTO())
+                .ToList();
+
+            createdDate = CreatedDate;
+            orderStatus = OrderStatus;
         }
     }
 }

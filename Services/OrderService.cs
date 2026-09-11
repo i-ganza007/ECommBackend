@@ -14,20 +14,21 @@ namespace ECommBackend.Services
 
         public async Task<OrderDTO> GetSingleOrder(Guid _orderId, CancellationToken ctx) { 
           var result = await _orderRepo.GetSingleOrder(_orderId, ctx);
-          return OrderMapToDomain.ModelToRecordDTO(result);
+          return result.ModelToRecordDTO();
         }
-        public async Task<IEnumerable<OrderDTO>?> GetAllOrders(Guid _userId, CancellationToken ctx) {
+        public async Task<IQueryable<OrderDTO>?> GetAllOrders(Guid _userId, CancellationToken ctx) {
           var result = await _orderRepo.GetAllOrders(_userId, ctx);
-          return result.Select(x=>OrderMapToDomain.ModelToRecordDTO(x));
+          return result.Select(x=>x.ModelToRecordDTO());
         }
 
-        public async Task CreateOrder(OrderModel order) {
-           await _orderRepo.CreateOrder(order);
+        public async Task<Guid> CreateOrder(OrderModel order) {
+           var result = await _orderRepo.CreateOrder(order);
+            return result;
         }
 
         public async Task<UserDTO> GetOrderCreator(Guid _userId, CancellationToken ctx) { 
           var result = await _orderRepo.GetOrderCreator(_userId, ctx);
-          return UserMapToDomain.ModelToRecordDTO(result);
+          return result.ModelToRecordDTO();
         }
     }
 }

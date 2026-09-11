@@ -9,5 +9,7 @@ namespace ECommBackend.Services.IJWTServices
         public string GenerateRefreshToken();
         public ClaimsPrincipal ValidateAccessToken(string token, bool validateLifeTime = true);
         public ClaimsPrincipal ValidateExpiredAccessToken(string token);
+
+
     }
 }

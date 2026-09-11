@@ -1,3 +1,4 @@
+using ECommBackend.CustomErrors;
 using ECommBackend.DatabaseConns;
 using ECommBackend.Models;
 using ECommBackend.Models.ModInterfaces;
@@ -14,11 +15,11 @@ namespace ECommBackend.Repositories
             _SQLiteConn = sqliteConn;
         }
 
-        public async Task<IEnumerable<AdminModel>?> GetAllAdmins(CancellationToken ctx)
+        public async Task<IQueryable<AdminModel>?> GetAllAdmins(CancellationToken ctx)
         {
             //var result = await _SQLiteConn.Admins.ToListAsync(ctx);
             var result = await _SQLiteConn.Admins.ToListAsync(ctx);
-            return result;
+            return result.AsQueryable();
         }
 
         public async Task<AdminModel?> GetSingleAdmin(CancellationToken ctx, Guid _userId)
@@ -26,7 +27,7 @@ namespace ECommBackend.Repositories
             var result = await _SQLiteConn.Admins.FirstAsync(x => x.UserId == _userId);
             if (result == null)
             {
-                throw new KeyNotFoundException($"{nameof(_userId)} doesn't exist");
+                throw new UserNotFoundError(_userId,$"{nameof(_userId)} doesn't exist");
             }
             return result;
         }
@@ -37,10 +38,11 @@ namespace ECommBackend.Repositories
             var result_removed = _SQLiteConn.Admins.Remove(result);
             await _SQLiteConn.SaveChangesAsync(ctx);
         }
-        public async Task CreateAdmin(CancellationToken ctx, AdminModel _admin)
+        public async Task<Guid> CreateAdmin(CancellationToken ctx, AdminModel _admin)
         {
             var result = _SQLiteConn.Admins.Add(_admin);
             await _SQLiteConn.SaveChangesAsync(ctx);
+            return _admin.UserId;
         }
     }
 }

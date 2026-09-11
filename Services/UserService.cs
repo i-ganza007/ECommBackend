@@ -12,14 +12,14 @@ namespace ECommBackend.Services
           _userRepo = _UserRepo;
         }
 
-        public async Task<IEnumerable<UserDTO>?> GetAllUsers(CancellationToken ctx) {
+        public async Task<IQueryable<UserDTO>?> GetAllUsers(CancellationToken ctx) {
          var result = await _userRepo.GetAllUsers(ctx);
-         return result.Select(x=>UserMapToDomain.ModelToRecordDTO(x));
+         return result.Select(x=>x.ModelToRecordDTO());
         }
 
         public async Task<UserDTO?> GetSingleUser(CancellationToken ctx, Guid _userId) {
          var result = await _userRepo.GetSingleUser(ctx, _userId);
-            return UserMapToDomain.ModelToRecordDTO(result);
+            return result.ModelToRecordDTO();
         }
         public async Task DeleteUser(CancellationToken ctx, Guid _userId) {
            await _userRepo.DeleteUser(ctx, _userId);

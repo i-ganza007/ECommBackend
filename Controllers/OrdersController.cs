@@ -1,3 +1,4 @@
+using ECommBackend.DTOs.FrontendDTO;
 using ECommBackend.Repositories.RepoInterfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -24,10 +25,12 @@ namespace ECommBackend.Controllers
          return Ok(result);
         }
 
-        //[HttpPost]
-        //public async Task<IActionResult> CreateProduct(CancellationToken ctx)
-        //{
-        //    va
-        //}
+        [HttpPost]
+        public async Task<IActionResult> CreateOrder(CancellationToken ctx,DTOrder _order)
+        {
+            Guid _productId = Guid.NewGuid();
+
+
+        }
     }
 }

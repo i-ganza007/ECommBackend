@@ -1,4 +1,3 @@
-using 
 namespace ECommBackend.Services
 {
     public class JwtSettings

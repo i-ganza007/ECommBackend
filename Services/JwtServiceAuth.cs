@@ -12,9 +12,11 @@ namespace ECommBackend.Services
     public class JwtServiceAuth: IjwtServices.IJWTService
     {
         private readonly JwtSettings _jwtSettings;
-        public JwtServiceAuth(IOptions<JwtSettings> jwtSettings)
+        private readonly ILogger _logger;
+        public JwtServiceAuth(IOptions<JwtSettings> jwtSettings,ILogger<JwtServiceAuth> logger)
         {
             _jwtSettings = jwtSettings.Value;
+            _logger = logger;
         }
 
         public string GenerateAccessToken(UserModel userModel) {
@@ -68,8 +70,10 @@ namespace ECommBackend.Services
                 {
                     return null;
                 }
+
                 return decoded_token_principal;
-)
+
+
             }
             catch (SecurityTokenException ex)
             {

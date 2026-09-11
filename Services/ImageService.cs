@@ -14,11 +14,11 @@ namespace ECommBackend.Services
 
         public async Task<ImageDTO> GetSingleImage(Guid _imageId, CancellationToken ctx) { 
            var result = await _imageRepo.GetSingleImage(_imageId, ctx);
-            return ImageMapToDomain.ModelToRecordDTO(result);
+            return result.ModelToRecordDTO();
         }
-        public async Task<IEnumerable<ImageDTO>?> GetAllImages(CancellationToken ctx) {
+        public async Task<IQueryable<ImageDTO>?> GetAllImages(CancellationToken ctx) {
             var result = await _imageRepo.GetAllImages(ctx);
-            return result.Select(x => ImageMapToDomain.ModelToRecordDTO(x));
+            return result.Select(x => x.ModelToRecordDTO());
         }
         public async Task UploadImage(ImageModel _imageModel, Guid _variantId, CancellationToken ctx) {
           await _imageRepo.UploadImage(_imageModel, _variantId, ctx);

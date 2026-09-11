@@ -15,11 +15,11 @@ namespace ECommBackend.Services
 
         public async Task<ProductDTO?> GetSingleProduct(Guid productId, CancellationToken ctx) {
            var result = await productRepo.GetSingleProduct(productId, ctx);
-           return ProductMapToDomain.ModelToRecordDTO(result);
+           return result.ModelToRecordDTO();
         }
-        public async Task<IEnumerable<ProductDTO>?> GetAllProductsByUser(Guid _userId, CancellationToken ctx) { 
+        public async Task<IQueryable<ProductDTO>?> GetAllProductsByUser(Guid _userId, CancellationToken ctx) { 
            var result = await productRepo.GetAllProductsByUser(_userId, ctx);
-           return result.Select(x=>ProductMapToDomain.ModelToRecordDTO(x));
+           return result.Select(x=>x.ModelToRecordDTO());
         }
 
         public async Task DeleteSingleProduct(Guid productId, CancellationToken ctx) {
@@ -32,7 +32,7 @@ namespace ECommBackend.Services
 
         public async Task<AdminDTO> GetProductOwner(Guid productId, CancellationToken ctx) {
            var result = await productRepo.GetProductOwner(productId, ctx);
-          return AdminMapToDomain.ModelToRecordDTO(result);
+          return result.ModelToRecordDTO();
         }
     }
 }

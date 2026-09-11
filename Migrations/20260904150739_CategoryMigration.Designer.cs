@@ -3,6 +3,7 @@ using System;
 using ECommBackend.DatabaseConns;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ECommBackend.Migrations
 {
     [DbContext(typeof(SQLiteConn))]
-    partial class SQLiteConnModelSnapshot : ModelSnapshot
+    [Migration("20260904150739_CategoryMigration")]
+    partial class CategoryMigration
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.11");

@@ -44,6 +44,10 @@ namespace ECommBackend.Models
 
         public  DateTime CreatedAt { get; set; } = DateTime.Now;
 
+        public Guid CategoryId { get; set; }
+
+        public CategoryModel CategoryModel { get; set; }
+
         public DateTime? UpdateAt { get; set; }
 
         [Required]
@@ -51,10 +55,11 @@ namespace ECommBackend.Models
         public  AdminModel Owner { get; set; } = null!;
 
         [SetsRequiredMembers]
-        public ProductModel(Guid productId, string base_SKU, string name,  string description, Guid adminOwnerId) {
+        public ProductModel(Guid productId, string base_SKU, string name,  string description, Guid adminOwnerId, Guid categoryId) {
         ProductId = productId;
         Name = name;
         Description = description;
+        CategoryId = categoryId;
         Base_SKU = base_SKU;
         AdminOwnerId = adminOwnerId;
         }

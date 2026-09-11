@@ -4,14 +4,14 @@ namespace ECommBackend.DTOs.MapToDomain
 {
     public static class OrderMapToDomain
     {
-        public static OrderDTO ModelToRecordDTO(OrderModel _order) {
+        public static OrderDTO ModelToRecordDTO(this OrderModel _order) {
 
             return new OrderDTO(
                 _order.OrderId,
                 _order.TotalPrice,
-                UserMapToDomain.ModelToRecordDTO(_order.OrderCreator),
+                _order.OrderCreator.ModelToRecordDTO(),
                 _order.OrderCreatorId,
-                _order.Products.Select(x=> ProductMapToDomain.ModelToRecordDTO(x)).ToList(),
+                _order.Products.Select(x=> x.ModelToRecordDTO()).ToList(),
                 _order.CreatedDate,
                 _order.OrderStatus
                 );

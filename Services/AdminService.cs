@@ -12,14 +12,14 @@ public class AdminService
        _adminRepo = _AdminRepo;
     }
 
-    public async Task<IEnumerable<AdminDTO>?> GetAllAdmins(CancellationToken ctx) {
+    public async Task<IQueryable<AdminDTO>?> GetAllAdmins(CancellationToken ctx) {
       var result = await _adminRepo.GetAllAdmins(ctx);
-      return result.Select(x=>AdminMapToDomain.ModelToRecordDTO(x));
+      return result.Select(x=>x.ModelToRecordDTO());
     }
 
     public async Task<AdminDTO?> GetSingleAdmin(CancellationToken ctx, Guid _adminId) {
       var result = await _adminRepo.GetSingleAdmin(ctx, _adminId);
-        return AdminMapToDomain.ModelToRecordDTO(result);
+        return result.ModelToRecordDTO();
     }
     public async Task DeleteAdmin(CancellationToken ctx, Guid _adminId) {
       await _adminRepo.DeleteAdmin(ctx, _adminId);

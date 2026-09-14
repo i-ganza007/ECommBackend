@@ -1,3 +1,4 @@
+using ECommBackend.CustomErrors;
 using ECommBackend.DatabaseConns;
 using ECommBackend.Models;
 using ECommBackend.Repositories.RepoInterfaces;
@@ -22,10 +23,10 @@ namespace ECommBackend.Repositories
             }
             return result;
         }
-        public async Task<IEnumerable<ProductModel>?> GetAllProductsByUser(Guid _userId, CancellationToken ctx) {
+        public async Task<IQueryable<ProductModel>?> GetAllProductsByUser(Guid _userId, CancellationToken ctx) {
             var result = await _SQLiteConn.Products.ToListAsync(ctx);
                 
-            return result;
+            return result.AsQueryable();
 
         }
 
@@ -38,10 +39,10 @@ namespace ECommBackend.Repositories
 
         }
 
-        public async Task CreateProduct(ProductModel newProductModel, CancellationToken ctx) {
+        public async Task<Guid> CreateProduct(ProductModel newProductModel, CancellationToken ctx) {
             var result = _SQLiteConn.Products.Add(newProductModel);
             await _SQLiteConn.SaveChangesAsync(ctx);
-
+            return newProductModel.ProductId;
         }
 
         //public Task UpdateProduct(ProductModel newProductModel,CancellationToken ctx);
@@ -50,7 +51,7 @@ namespace ECommBackend.Repositories
             var result = await _SQLiteConn.Products.FirstOrDefaultAsync(x => x.AdminOwnerId == productId,ctx);
             if(result == null)
             {
-                throw new KeyNotFoundException($"{nameof(productId)} exist");
+                throw new UserNotFoundError(productId,$"{nameof(productId)} doesn't exist");
             }
             return result.Owner;
         

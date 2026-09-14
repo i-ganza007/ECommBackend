@@ -4,7 +4,7 @@ namespace ECommBackend.DTOs.MapToDomain
 {
     public static class VariantMapToDomain
     {
-        public static VariantDTO ModelToRecordDTO(VariantModel variantModel)
+        public static VariantDTO ModelToRecordDTO(this VariantModel variantModel)
         {
             return new VariantDTO(
                 variantModel.VariantId,
@@ -12,8 +12,8 @@ namespace ECommBackend.DTOs.MapToDomain
                 variantModel.Price,
                 variantModel.Units,
                 variantModel.VariantImageId,
-                ImageMapToDomain.ModelToRecordDTO(variantModel.VariantImage),
-                ProductMapToDomain.ModelToRecordDTO(variantModel.Product)
+                variantModel.VariantImage.ModelToRecordDTO(),
+                variantModel.Product.ModelToRecordDTO()
                 );
         }
     }

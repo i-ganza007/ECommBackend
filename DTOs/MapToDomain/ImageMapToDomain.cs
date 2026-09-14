@@ -4,7 +4,7 @@ namespace ECommBackend.DTOs.MapToDomain
 {
     public static class ImageMapToDomain
     {
-        public static ImageDTO ModelToRecordDTO(ImageModel _imageModel)
+        public static ImageDTO ModelToRecordDTO(this ImageModel _imageModel)
         {
             return new ImageDTO(
                 _imageModel.ImageId,

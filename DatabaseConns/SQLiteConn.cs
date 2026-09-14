@@ -12,6 +12,8 @@ namespace ECommBackend.DatabaseConns
         public DbSet<VariantModel> Variants { get; set; }
         public DbSet<ImageModel> Images { get; set; }
 
+        public DbSet<CategoryModel> Categories { get; set; }
+
         public SQLiteConn(DbContextOptions<SQLiteConn> options) : base(options) { }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -47,6 +49,22 @@ namespace ECommBackend.DatabaseConns
                 .HasMany(p => p.Variants)
                 .WithOne(o=>o.Product)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<CategoryModel>()
+             .HasMany(c => c.Products)
+             .WithOne(p => p.CategoryModel)
+             .HasForeignKey(p => p.CategoryId);
+
+                    modelBuilder.Entity<CategoryModel>()
+                        .HasMany(c => c.ChildCategories)
+                        .WithOne(c => c.ParentCategory)
+                        .HasForeignKey(c => c.ParentCategoryId);
+
+
+
+            modelBuilder.Entity<CategoryModel>()
+               .HasIndex(c => c.CategoryId)
+                .IsUnique();
 
             // Product Id Key
             modelBuilder.Entity<ProductModel>()

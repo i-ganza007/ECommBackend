@@ -23,12 +23,12 @@ namespace ECommBackend.Repositories
             return result;
         }
 
-        public async Task<IEnumerable<ImageModel>?> GetAllImages(CancellationToken ctx) { 
+        public async Task<IQueryable<ImageModel>?> GetAllImages(CancellationToken ctx) { 
           var result = await _SQLiteConn.Images.ToListAsync(ctx);
-          return result;
+          return result.AsQueryable();
         }
 
-        public async Task UploadImage(ImageModel _imageModel, Guid _variantId,CancellationToken ctx) {
+        public async Task<Guid> UploadImage(ImageModel _imageModel, Guid _variantId,CancellationToken ctx) {
             var result = await _SQLiteConn.Variants.FirstOrDefaultAsync(x => x.VariantId == _variantId);
             if (result == null)
             {
@@ -36,6 +36,7 @@ namespace ECommBackend.Repositories
             }
             var result_add = await _SQLiteConn.Images.AddAsync(_imageModel, ctx);
             await _SQLiteConn.SaveChangesAsync(ctx);
+            return _imageModel.ImageId;
 
         }
 

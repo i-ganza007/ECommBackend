@@ -1,4 +1,5 @@
 using ECommBackend.DTOs;
+using ECommBackend.DTOs.MapToDomain;
 using ECommBackend.Models.ModInterfaces;
 using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
@@ -44,12 +45,12 @@ namespace ECommBackend.Models
         {
             orderId = OrderId;
             totalPrice = TotalPrice;
-            orderCreator = OrderCreator.MapToDTO();
+            orderCreator = OrderCreator.ModelToRecordDTO();
 
             orderCreatorId = OrderCreatorId;
 
             products = Products
-                .Select(product => product.MapToDTO())
+                .Select(product => product.ModelToRecordDTO())
                 .ToList();
 
             createdDate = CreatedDate;

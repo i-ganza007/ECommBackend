@@ -1,3 +1,4 @@
+using ECommBackend.CustomErrors;
 using ECommBackend.DatabaseConns;
 using ECommBackend.Models;
 using ECommBackend.Models.ModInterfaces;
@@ -12,15 +13,15 @@ namespace ECommBackend.Repositories
         _SQLiteConn = sqliteConn;
         }
 
-        public async Task<IEnumerable<UserModel>?> GetAllUsers(CancellationToken ctx) {
+        public async Task<IQueryable<UserModel>?> GetAllUsers(CancellationToken ctx) {
             var result = await _SQLiteConn.Users.ToListAsync(ctx);
-            return result;
+            return result.AsQueryable();
         }
 
         public async Task<UserModel?> GetSingleUser(CancellationToken ctx, Guid _userId) {
             var result = await _SQLiteConn.Users.FirstAsync(x => x.UserId == _userId);
             if (result == null) {
-                throw new KeyNotFoundException($"{nameof(_userId)} doesn't exist");
+                throw new UserNotFoundError(_userId,$"{nameof(_userId)} doesn't exist");
             }
             return result;
         }
@@ -30,9 +31,10 @@ namespace ECommBackend.Repositories
             var result_removed = _SQLiteConn.Users.Remove(result);
             await _SQLiteConn.SaveChangesAsync(ctx);
         }
-        public async Task CreateUser(CancellationToken ctx, UserModel _user) {
+        public async Task<Guid> CreateUser(CancellationToken ctx, UserModel _user) {
             var result = _SQLiteConn.Users.Add(_user);
             await _SQLiteConn.SaveChangesAsync(ctx);
+            return _user.UserId;
         }
         //public Task UpdateUser(CancellationToken ctx, UserModel _user) { }
     }

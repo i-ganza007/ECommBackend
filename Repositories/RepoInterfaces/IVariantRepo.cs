@@ -9,7 +9,7 @@ namespace ECommBackend.Repositories.RepoInterfaces
 
         public Task<Guid> CreateVariantForProduct(Guid _productId,VariantModel createVariantModel ,CancellationToken ctx);
 
-        public Task UpdateSingleVariant(Guid _variantId, CancellationToken ctx);
+        public Task UpdateSingleVariant(Guid _variantId, double size, decimal price, int units, CancellationToken ctx);
 
         public Task DeleteSingleVariant(Guid _variantId,CancellationToken ctx);
 

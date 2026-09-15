@@ -1,4 +1,6 @@
+using ECommBackend.CustomErrors;
 using ECommBackend.DatabaseConns;
+using ECommBackend.DTOs.FrontendDTO;
 using ECommBackend.Models;
 using ECommBackend.Models.ModInterfaces;
 using ECommBackend.Repositories.RepoInterfaces;
@@ -12,17 +14,24 @@ namespace ECommBackend.Repositories
         _SQLiteConn = sqliteConn;
         }
 
-        public async Task<IEnumerable<UserModel>?> GetAllUsers(CancellationToken ctx) {
+        public async Task<IQueryable<UserModel>?> GetAllUsers(CancellationToken ctx) {
             var result = await _SQLiteConn.Users.ToListAsync(ctx);
-            return result;
+            return result.AsQueryable();
         }
 
         public async Task<UserModel?> GetSingleUser(CancellationToken ctx, Guid _userId) {
-            var result = await _SQLiteConn.Users.FirstAsync(x => x.UserId == _userId);
+            var result = await _SQLiteConn.Users.FirstOrDefaultAsync(x => x.UserId == _userId, ctx);
             if (result == null) {
-                throw new KeyNotFoundException($"{nameof(_userId)} doesn't exist");
+                throw new UserNotFoundError(_userId,$"{nameof(_userId)} doesn't exist");
             }
             return result;
+        }
+
+        // Returns null rather than throwing: an unknown email is a failed login, not a server fault,
+        // and the caller must not be able to tell it apart from a wrong password.
+        public async Task<UserModel?> GetSingleUser(CancellationToken ctx, DTOLogin _login)
+        {
+            return await _SQLiteConn.Users.FirstOrDefaultAsync(x => x.Email == _login.email, ctx);
         }
         public async Task DeleteUser(CancellationToken ctx, Guid _userId) {
 
@@ -30,9 +39,10 @@ namespace ECommBackend.Repositories
             var result_removed = _SQLiteConn.Users.Remove(result);
             await _SQLiteConn.SaveChangesAsync(ctx);
         }
-        public async Task CreateUser(CancellationToken ctx, UserModel _user) {
+        public async Task<Guid> CreateUser(CancellationToken ctx, UserModel _user) {
             var result = _SQLiteConn.Users.Add(_user);
             await _SQLiteConn.SaveChangesAsync(ctx);
+            return _user.UserId;
         }
         //public Task UpdateUser(CancellationToken ctx, UserModel _user) { }
     }

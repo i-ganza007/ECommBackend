@@ -1,3 +1,4 @@
+using ECommBackend.CustomErrors;
 using ECommBackend.DatabaseConns;
 using ECommBackend.Models;
 using ECommBackend.Repositories.RepoInterfaces;
@@ -16,33 +17,47 @@ namespace ECommBackend.Repositories
 
             var result = await _SQLiteConn.Variants.FirstOrDefaultAsync(x => x.VariantId == _variantId);
             if (result == null) {
-                throw new KeyNotFoundException($"{nameof(_variantId)} doesn't exist as variant ");
+                throw new VariantNotFoundError(_variantId,$"{nameof(_variantId)} doesn't exist as variant ");
             }
             return result;
         
         }
-        public async Task<IEnumerable<VariantModel>?> GetAllVariantsForProduct(Guid _productId, CancellationToken ctx) {
+        public async Task<IQueryable<VariantModel>?> GetAllVariantsForProduct(Guid _productId, CancellationToken ctx) {
             var result = await _SQLiteConn.Variants.ToListAsync(ctx);
-            return result;
+            return result.AsQueryable();
         }
 
-        public async Task CreateVariantForProduct(Guid _productId, VariantModel createVariantModel, CancellationToken ctx) {
+        public async Task<Guid> CreateVariantForProduct(Guid _productId, VariantModel createVariantModel, CancellationToken ctx) {
            var result = await _SQLiteConn.Variants.FirstOrDefaultAsync(x=>x.ProductModelId == _productId);
             if (result == null)
             {
-                throw new KeyNotFoundException($"{nameof(_productId)} doesn't exist as variant ");
+                throw new ProductNotFoundError($"{nameof(_productId)} doesn't exist as variant ");
             }
             var result_add = await _SQLiteConn.Variants.AddAsync(createVariantModel, ctx);
             await _SQLiteConn.SaveChangesAsync(ctx);
+            return createVariantModel.VariantId;
         }
 
-        public async Task UpdateSingleVariant(Guid _variantId, CancellationToken ctx) { }
+        public async Task UpdateSingleVariant(Guid _variantId, double size, decimal price, int units, CancellationToken ctx) {
+            var result = await _SQLiteConn.Variants.FirstOrDefaultAsync(x => x.VariantId == _variantId, ctx);
+            if (result == null)
+            {
+                throw new VariantNotFoundError(_variantId, $"{nameof(_variantId)} doesn't exist as variant ");
+            }
+
+            // Image and owning product are deliberately not reassignable here.
+            result.Size = size;
+            result.Price = price;
+            result.Units = units;
+
+            await _SQLiteConn.SaveChangesAsync(ctx);
+        }
 
         public async Task DeleteSingleVariant(Guid _variantId, CancellationToken ctx) {
             var result = await _SQLiteConn.Variants.FirstOrDefaultAsync(x => x.VariantId == _variantId);
             if (result == null)
             {
-                throw new KeyNotFoundException($"{nameof(_variantId)} doesn't exist as variant ");
+                throw new VariantNotFoundError(_variantId,$"{nameof(_variantId)} doesn't exist as variant ");
             }
             var removed = _SQLiteConn.Variants.Remove(result);
             await _SQLiteConn.SaveChangesAsync(ctx);
@@ -52,7 +67,7 @@ namespace ECommBackend.Repositories
             var check = await _SQLiteConn.Products.FirstOrDefaultAsync(x=>x.ProductId == _productId);
             if (check == null)
             {
-                throw new KeyNotFoundException($"{_productId} doesn't exist ");
+                throw new ProductNotFoundError($"{_productId} doesn't exist ");
             }
             //var variants_where =_SQLiteConn.Variants.Where(x => x.ProductModelId == _productId);
             //var result_first = await Task.FromResult<IEnumerable<VariantModel>>(_SQLiteConn.Variants.Where(x => x.ProductModelId == _productId));

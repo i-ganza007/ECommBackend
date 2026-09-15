@@ -4,7 +4,7 @@ namespace ECommBackend.DTOs.MapToDomain
 {
     public static class ProductMapToDomain
     {
-        public static ProductDTO ModelToRecordDTO(ProductModel _productModel) {
+        public static ProductDTO ModelToRecordDTO(this ProductModel _productModel) {
             return new ProductDTO(
                 _productModel.ProductId,
                 _productModel.Name,

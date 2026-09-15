@@ -1,3 +1,4 @@
+using ECommBackend.CustomErrors;
 using ECommBackend.DatabaseConns;
 using ECommBackend.Models;
 using ECommBackend.Models.ModInterfaces;
@@ -16,17 +17,21 @@ namespace ECommBackend.Repositories
         public async Task<OrderModel> GetSingleOrder(Guid _orderId, CancellationToken ctx) { 
              var result = await _SQLiteConn.Orders.FirstOrDefaultAsync(x=>x.OrderId==_orderId,ctx);
             if (result == null) {
-                throw new Exception($"Order {_orderId} can't be found ");
+                throw new OrderNotFoundException($"Order {_orderId} can't be found ");
             }
             return result;
         }
-        public async Task<IEnumerable<OrderModel>?> GetAllOrders(Guid _userId, CancellationToken ctx) { 
+        public async Task<IQueryable<OrderModel>?> GetAllOrders(Guid _userId, CancellationToken ctx) { 
         
             var result = await _SQLiteConn.Orders.ToListAsync(ctx);
-            return result;
+            return result.AsQueryable();
         }
 
-        public async  Task CreateOrder(OrderModel order) { }
+        public async  Task<Guid> CreateOrder(OrderModel order, CancellationToken ctx) {
+            await _SQLiteConn.Orders.AddAsync(order, ctx);
+            await _SQLiteConn.SaveChangesAsync(ctx);
+            return order.OrderId;
+        }
 
         public async Task<UserModel> GetOrderCreator(Guid _userId, CancellationToken ctx) {
             var result = await _SQLiteConn.Orders.FirstOrDefaultAsync(x => x.OrderCreatorId == _userId, ctx);

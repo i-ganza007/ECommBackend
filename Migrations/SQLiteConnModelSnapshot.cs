@@ -60,6 +60,33 @@ namespace ECommBackend.Migrations
                     b.ToTable("Admins");
                 });
 
+            modelBuilder.Entity("ECommBackend.Models.CategoryModel", b =>
+                {
+                    b.Property<Guid>("CategoryId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CategoryDescription")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CategoryName")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("ParentCategoryId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("CategoryId");
+
+                    b.HasIndex("CategoryId")
+                        .IsUnique();
+
+                    b.HasIndex("ParentCategoryId");
+
+                    b.ToTable("Categories");
+                });
+
             modelBuilder.Entity("ECommBackend.Models.ImageModel", b =>
                 {
                     b.Property<Guid>("ImageId")
@@ -119,6 +146,9 @@ namespace ECommBackend.Migrations
                     b.Property<int>("Category")
                         .HasColumnType("INTEGER");
 
+                    b.Property<Guid>("CategoryId")
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
 
@@ -152,6 +182,8 @@ namespace ECommBackend.Migrations
 
                     b.HasIndex("Base_SKU")
                         .IsUnique();
+
+                    b.HasIndex("CategoryId");
 
                     b.HasIndex("Name")
                         .IsUnique();
@@ -264,6 +296,15 @@ namespace ECommBackend.Migrations
                     b.ToTable("OrderProducts");
                 });
 
+            modelBuilder.Entity("ECommBackend.Models.CategoryModel", b =>
+                {
+                    b.HasOne("ECommBackend.Models.CategoryModel", "ParentCategory")
+                        .WithMany("ChildCategories")
+                        .HasForeignKey("ParentCategoryId");
+
+                    b.Navigation("ParentCategory");
+                });
+
             modelBuilder.Entity("ECommBackend.Models.OrderModel", b =>
                 {
                     b.HasOne("ECommBackend.Models.UserModel", "OrderCreator")
@@ -277,6 +318,12 @@ namespace ECommBackend.Migrations
 
             modelBuilder.Entity("ECommBackend.Models.ProductModel", b =>
                 {
+                    b.HasOne("ECommBackend.Models.CategoryModel", "CategoryModel")
+                        .WithMany("Products")
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("ECommBackend.Models.AdminModel", "Owner")
                         .WithMany("ProductsOwned")
                         .HasForeignKey("OwnerUserId")
@@ -286,6 +333,8 @@ namespace ECommBackend.Migrations
                     b.HasOne("ECommBackend.Models.UserModel", null)
                         .WithMany("ProductsBought")
                         .HasForeignKey("UserModelUserId");
+
+                    b.Navigation("CategoryModel");
 
                     b.Navigation("Owner");
                 });
@@ -327,6 +376,13 @@ namespace ECommBackend.Migrations
             modelBuilder.Entity("ECommBackend.Models.AdminModel", b =>
                 {
                     b.Navigation("ProductsOwned");
+                });
+
+            modelBuilder.Entity("ECommBackend.Models.CategoryModel", b =>
+                {
+                    b.Navigation("ChildCategories");
+
+                    b.Navigation("Products");
                 });
 
             modelBuilder.Entity("ECommBackend.Models.ProductModel", b =>

@@ -1,6 +1,7 @@
 using ECommBackend.CustomErrors.ExceptionFilterLayer;
 using ECommBackend.DatabaseConns;
 using ECommBackend.Models;
+
 using Scalar.AspNetCore;
 using ECommBackend.Repositories;
 using ECommBackend.Repositories.RepoInterfaces;
@@ -101,9 +102,18 @@ builder.Services.AddAuthentication(options =>
             var logger = context.HttpContext.RequestServices.GetService<ILogger<Program>>();
             logger?.LogInformation("JWT token validated for user: {User}", context.Principal?.Identity?.Name);
             return Task.CompletedTask;
+        },
+        OnMessageReceived = context =>
+        {
+            if (context.HttpContext.Request.Cookies.TryGetValue("access_token",out var jwt_token)) {
+                context.Token = jwt_token;
+            }
+            return Task.CompletedTask;
         }
     };
 });
+
+builder.Services.AddAuthorizationBuilder().AddPolicy("adminUsers", policy => policy.RequireRole(Roles.admin.ToString())).AddPolicy("users", policy => policy.RequireRole(Roles.logged_in.ToString()));
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

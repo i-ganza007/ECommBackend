@@ -1,7 +1,7 @@
 using ECommBackend.Models;
+using ECommBackend.Models.ModInterfaces;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.IdentityModel.Tokens.Experimental;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -9,6 +9,7 @@ using System.Text;
 using IjwtServices = ECommBackend.Services.IJWTServices ;
 namespace ECommBackend.Services
 {
+  
     public class JwtServiceAuth: IjwtServices.IJWTService
     {
         private readonly JwtSettings _jwtSettings;
@@ -19,13 +20,13 @@ namespace ECommBackend.Services
             _logger = logger;
         }
 
-        public string GenerateAccessToken(UserModel userModel) {
+        public string GenerateAccessToken(IUser userModel,IjwtServices.Roles roles) {
             var token = new JwtSecurityTokenHandler();
             var key = Encoding.ASCII.GetBytes(_jwtSettings.SecretKey);
 
             var claims = new List<Claim> {
               new Claim(ClaimTypes.Email, userModel.Email),
-              new Claim(ClaimTypes.Role,"user"),
+              new Claim(ClaimTypes.Role,roles.ToString()),
               new Claim(ClaimTypes.NameIdentifier,userModel.UserId.ToString())
             };
 
@@ -35,7 +36,8 @@ namespace ECommBackend.Services
                 Expires = DateTime.UtcNow.AddMinutes(_jwtSettings.AccessKeyTimeLineMinutes),
                 Issuer=_jwtSettings.Issuer,
                 Audience=_jwtSettings.Audience,
-                SigningCredentials=new SigningCredentials(new SymmetricSecurityKey(key),SecurityAlgorithms.Sha256)
+                // HmacSha256, not Sha256: the latter names a digest, not a signature algorithm.
+                SigningCredentials=new SigningCredentials(new SymmetricSecurityKey(key),SecurityAlgorithms.HmacSha256)
             };
 
             var tokenI = token.CreateToken(secTokenDesc);
@@ -66,7 +68,7 @@ namespace ECommBackend.Services
 
                 };
                 var decoded_token_principal = token.ValidateToken(jwtToken, tokenParams, out SecurityToken decoded);
-                if (decoded is JwtSecurityToken secToken && !secToken.Header.Alg.Equals(SecurityAlgorithms.Sha256, StringComparison.InvariantCultureIgnoreCase))
+                if (decoded is JwtSecurityToken secToken && !secToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
                 {
                     return null;
                 }

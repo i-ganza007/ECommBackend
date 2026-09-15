@@ -1,5 +1,6 @@
 using ECommBackend.CustomErrors;
 using ECommBackend.DatabaseConns;
+using ECommBackend.DTOs.FrontendDTO;
 using ECommBackend.Models;
 using ECommBackend.Models.ModInterfaces;
 using ECommBackend.Repositories.RepoInterfaces;
@@ -19,11 +20,18 @@ namespace ECommBackend.Repositories
         }
 
         public async Task<UserModel?> GetSingleUser(CancellationToken ctx, Guid _userId) {
-            var result = await _SQLiteConn.Users.FirstAsync(x => x.UserId == _userId);
+            var result = await _SQLiteConn.Users.FirstOrDefaultAsync(x => x.UserId == _userId, ctx);
             if (result == null) {
                 throw new UserNotFoundError(_userId,$"{nameof(_userId)} doesn't exist");
             }
             return result;
+        }
+
+        // Returns null rather than throwing: an unknown email is a failed login, not a server fault,
+        // and the caller must not be able to tell it apart from a wrong password.
+        public async Task<UserModel?> GetSingleUser(CancellationToken ctx, DTOLogin _login)
+        {
+            return await _SQLiteConn.Users.FirstOrDefaultAsync(x => x.Email == _login.email, ctx);
         }
         public async Task DeleteUser(CancellationToken ctx, Guid _userId) {
 

@@ -27,9 +27,9 @@ namespace ECommBackend.Repositories
             return result.AsQueryable();
         }
 
-        public async  Task<Guid> CreateOrder(OrderModel order) {
-            var result = await _SQLiteConn.Orders.AddAsync(order);
-            await _SQLiteConn.SaveChangesAsync();
+        public async  Task<Guid> CreateOrder(OrderModel order, CancellationToken ctx) {
+            await _SQLiteConn.Orders.AddAsync(order, ctx);
+            await _SQLiteConn.SaveChangesAsync(ctx);
             return order.OrderId;
         }
 

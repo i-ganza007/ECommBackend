@@ -1,5 +1,8 @@
+using ECommBackend.CustomErrors;
 using ECommBackend.DTOs.FrontendDTO;
+using ECommBackend.Models;
 using ECommBackend.Repositories.RepoInterfaces;
+using ECommBackend.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ECommBackend.Controllers
@@ -9,8 +12,10 @@ namespace ECommBackend.Controllers
     public class OrdersController : ControllerBase
     {
         private readonly IOrderRepo _orderRepo;
-        public OrdersController(IOrderRepo orderRepo) {
+        private readonly OrderService _orderService;
+        public OrdersController(IOrderRepo orderRepo, OrderService orderService) {
          _orderRepo = orderRepo;
+         _orderService = orderService;
         }
 
         [HttpGet("all")]
@@ -26,11 +31,31 @@ namespace ECommBackend.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> CreateOrder(CancellationToken ctx,DTOrder _order)
+        public async Task<IActionResult> CreateOrder([FromHeader(Name = "loggedInUserId")] string userId, DTOrder _order, CancellationToken ctx)
         {
-            Guid _productId = Guid.NewGuid();
+            // The caller owns the order, not whoever the body claims — _order._OrderCreatorId is ignored.
+            if (!Guid.TryParse(userId, out var orderCreatorId))
+            {
+                return BadRequest($"'{userId}' is not a valid user id");
+            }
 
-
+            try
+            {
+                var orderId = await _orderService.CreateOrder(_order, orderCreatorId, ctx);
+                return CreatedAtAction(nameof(GetSingleOrder), new { orderId }, orderId);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (ProductNotFoundError ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (VariantNotFoundError ex)
+            {
+                return Conflict(ex.Message);
+            }
         }
     }
 }

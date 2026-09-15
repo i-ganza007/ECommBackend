@@ -38,7 +38,20 @@ namespace ECommBackend.Repositories
             return createVariantModel.VariantId;
         }
 
-        public async Task UpdateSingleVariant(Guid _variantId, CancellationToken ctx) { }
+        public async Task UpdateSingleVariant(Guid _variantId, double size, decimal price, int units, CancellationToken ctx) {
+            var result = await _SQLiteConn.Variants.FirstOrDefaultAsync(x => x.VariantId == _variantId, ctx);
+            if (result == null)
+            {
+                throw new VariantNotFoundError(_variantId, $"{nameof(_variantId)} doesn't exist as variant ");
+            }
+
+            // Image and owning product are deliberately not reassignable here.
+            result.Size = size;
+            result.Price = price;
+            result.Units = units;
+
+            await _SQLiteConn.SaveChangesAsync(ctx);
+        }
 
         public async Task DeleteSingleVariant(Guid _variantId, CancellationToken ctx) {
             var result = await _SQLiteConn.Variants.FirstOrDefaultAsync(x => x.VariantId == _variantId);

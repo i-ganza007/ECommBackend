@@ -1,6 +1,7 @@
 using ECommBackend.CustomErrors.ExceptionFilterLayer;
 using ECommBackend.DatabaseConns;
 using ECommBackend.Models;
+using Scalar.AspNetCore;
 using ECommBackend.Repositories;
 using ECommBackend.Repositories.RepoInterfaces;
 using ECommBackend.Services;
@@ -15,6 +16,19 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllers();
+
+// Scalar renders whatever this document describes, so it has to be generated first.
+builder.Services.AddOpenApi(options =>
+{
+    options.AddDocumentTransformer((document, context, cancellationToken) =>
+    {
+        document.Info.Title = "ECommBackend API";
+        document.Info.Version = "v1";
+        document.Info.Description = "Products, variants, orders, users and admins.";
+        return Task.CompletedTask;
+    });
+});
+
 builder.Services.AddDbContext<SQLiteConn>(options =>
 {
     options.UseSqlite(builder.Configuration.GetConnectionString("ECommSQLite"));
@@ -30,12 +44,20 @@ builder.Services.AddScoped<ICategory, CategoriesRepo>();
 builder.Services.AddScoped<IAdminRepo, AdminRepo>();
 builder.Services.AddScoped<IOrderRepo, OrderRepo>();
 builder.Services.AddScoped<IImageRepo, ImageRepo>();
+builder.Services.AddScoped<IVariantRepo, VariantRepo>();
 builder.Services.AddScoped<ProductService>();
 builder.Services.AddScoped<AdminService>();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddSingleton<IJWTService, JwtServiceAuth>();
 builder.Services.AddScoped<OrderService>();
 builder.Services.AddScoped<ImageService>();
+builder.Services.AddScoped<VariantService>();
+builder.Services.AddScoped<CategoryService>();
+
+// IMiddleware implementations are resolved from DI per request, so they must be registered.
+builder.Services.AddScoped<GlobalExceptionLayer>();
+builder.Services.AddScoped<OperationCancelledHandler>();
+
 builder.Services.AddOptions<JwtSettings>().BindConfiguration("JWTSettings");
 //builder.Services.AddDbContext<SQLConn>(options =>
 //{
@@ -87,22 +109,28 @@ var app = builder.Build();
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Home/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
+
+// Outermost, and before MapControllers: middleware added after the endpoint is mapped
+// never gets to wrap the controller that threw.
+app.UseMiddleware<GlobalExceptionLayer>();
+app.UseMiddleware<OperationCancelledHandler>();
 
 app.UseSerilogRequestLogging();
 
 app.UseHttpsRedirection();
 app.UseRouting();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
+if (app.Environment.IsDevelopment())
+{
+    app.MapOpenApi();                 // serves /openapi/v1.json
+    app.MapScalarApiReference();      // serves the UI at /scalar
+}
+
 app.MapControllers();
-app.UseMiddleware<OperationCancelledHandler>();
-app.UseMiddleware<GlobalExceptionLayer>();
-
-
 
 app.Run();

@@ -11,7 +11,7 @@ namespace ECommBackend.Repositories
         private readonly SQLiteConn _conn;
         public CategoriesRepo(SQLiteConn conn)
         {
-            conn = _conn;
+            _conn = conn;
         }
         public async Task<IQueryable<CategoryModel>?> GetAllCategories(CancellationToken ctx) {
             
@@ -35,9 +35,13 @@ namespace ECommBackend.Repositories
                 throw new CategoryNotFound(_categoryId, $"{nameof(_categoryId)} cannot be found in the current context");
             }
             var removed = _conn.Categories.Remove(result);
-            await _conn.SaveChangesAsync();
+            await _conn.SaveChangesAsync(ctx);
         }
-        //public Task CreateCategory(CancellationToken ctx, AdminModel user) { }
-        //public Task UpdateAdmin(CancellationToken ctx, AdminModel user);
+
+        public async Task<Guid> CreateCategory(CancellationToken ctx, CategoryModel newCategory) {
+            await _conn.Categories.AddAsync(newCategory, ctx);
+            await _conn.SaveChangesAsync(ctx);
+            return newCategory.CategoryId;
+        }
     }
 }

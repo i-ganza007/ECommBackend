@@ -23,6 +23,21 @@ namespace ECommBackend.Repositories
             }
             return result;
         }
+        // One round trip for the whole basket, with the variants the order needs to be priced against.
+        public async Task<List<ProductModel>> GetProductsByIds(IReadOnlyCollection<Guid> productIds, CancellationToken ctx) {
+            if (productIds.Count == 0)
+            {
+                return new List<ProductModel>();
+            }
+
+            var ids = productIds.ToArray();
+
+            return await _SQLiteConn.Products
+                .Include(x => x.Variants)
+                .Where(x => ids.Contains(x.ProductId))
+                .ToListAsync(ctx);
+        }
+
         public async Task<IQueryable<ProductModel>?> GetAllProductsByUser(Guid _userId, CancellationToken ctx) {
             var result = await _SQLiteConn.Products.ToListAsync(ctx);
                 

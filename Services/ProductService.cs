@@ -26,7 +26,9 @@ namespace ECommBackend.Services
             await productRepo.DeleteSingleProduct(productId, ctx);
         }
 
-        public async Task CreateProduct(ProductModel newProductModel, CancellationToken ctx) { }
+        public async Task<Guid> CreateProduct(ProductModel newProductModel, CancellationToken ctx) {
+           return await productRepo.CreateProduct(newProductModel, ctx);
+        }
 
         //public Task UpdateProduct(ProductModel newProductModel,CancellationToken ctx);
 

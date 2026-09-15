@@ -8,12 +8,12 @@ using Microsoft.AspNetCore.Mvc;
 namespace ECommBackend.Controllers
 {
     [Route("api/[controller]")]
-    [Controller]
-    public class AdminControler : ControllerBase
+    [ApiController]
+    public class AdminController : ControllerBase
     {
         private readonly IAdminRepo _adminRepo;
         private readonly IJWTService _jwtService;
-        public AdminControler(IAdminRepo adminRepo, IJWTService jwtService)
+        public AdminController(IAdminRepo adminRepo, IJWTService jwtService)
         {
             _adminRepo  = adminRepo;
             _jwtService = jwtService;

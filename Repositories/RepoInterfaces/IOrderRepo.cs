@@ -7,7 +7,7 @@ namespace ECommBackend.Repositories.RepoInterfaces
         public Task<OrderModel> GetSingleOrder(Guid _orderId, CancellationToken ctx);
         public Task<IQueryable<OrderModel>?> GetAllOrders(Guid _userId, CancellationToken ctx);
 
-        public Task<Guid> CreateOrder(OrderModel order);
+        public Task<Guid> CreateOrder(OrderModel order, CancellationToken ctx);
 
         public Task<UserModel> GetOrderCreator(Guid _userId, CancellationToken ctx);
     }

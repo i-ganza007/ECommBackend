@@ -17,18 +17,25 @@ namespace ECommBackend.Controllers
             _variantRepo = variantRepo;
         }
 
-        [HttpGet("{_productId}")]
+        // Product-scoped routes live under /product so they stop colliding with the variant-id routes.
+        [HttpGet("product/{_productId}")]
         public async Task<IActionResult> GetVariantsForProduct(CancellationToken ctx,string _productId) {
             var result = await _variantRepo.GetAllVariantsForProduct(Guid.Parse(_productId), ctx);
             return Ok(result);
         }
 
         [HttpGet("{_variantId}", Name = "SingleVariant")]
-        public async Task<IActionResult> GetSingleVariant(CancellationToken ctx, string _variantId) { 
+        public async Task<IActionResult> GetSingleVariant(CancellationToken ctx, string _variantId) {
            var result =  await _variantRepo.GetSingleVariant(Guid.Parse(_variantId), ctx);
             return Ok(result);
         }
 
+        [HttpPut("{_variantId}")]
+        public async Task<IActionResult> UpdateSingleVariant(CancellationToken ctx, string _variantId, DTOVariant variantDTO)
+        {
+            await _variantRepo.UpdateSingleVariant(Guid.Parse(_variantId), variantDTO._Size, variantDTO._Price, variantDTO._Units, ctx);
+            return NoContent();
+        }
 
         [HttpDelete("{_variantId}")]
         public async Task<IActionResult> DeleteSingleVariant(CancellationToken ctx, string _variantId)
@@ -37,7 +44,7 @@ namespace ECommBackend.Controllers
             return Ok();
         }
 
-        [HttpDelete("{_productId}")]
+        [HttpDelete("product/{_productId}")]
         public async Task<IActionResult> DeleteProductVariant(CancellationToken ctx, string _productId)
         {
             await _variantRepo.DeleteAllVariantsForProduct(Guid.Parse(_productId), ctx);

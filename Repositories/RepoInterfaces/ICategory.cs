@@ -8,7 +8,7 @@ namespace ECommBackend.Repositories.RepoInterfaces
 
         public Task<CategoryModel?> GetSingleCategory(CancellationToken ctx, Guid _adminId);
         public Task DeleteCategory(CancellationToken ctx, Guid _adminId);
-        //public Task CreateCategory(CancellationToken ctx, AdminModel user);
-        //public Task UpdateAdmin(CancellationToken ctx, AdminModel user);
+
+        public Task<Guid> CreateCategory(CancellationToken ctx, CategoryModel newCategory);
     }
 }

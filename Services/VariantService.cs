@@ -1,4 +1,5 @@
 using ECommBackend.DTOs;
+using ECommBackend.DTOs.FrontendDTO;
 using ECommBackend.DTOs.MapToDomain;
 using ECommBackend.Models;
 using ECommBackend.Repositories.RepoInterfaces;
@@ -26,7 +27,9 @@ namespace ECommBackend.Services
            return createVariantModel.VariantId;
         }
 
-        public async Task UpdateSingleVariant(Guid _variantId, CancellationToken ctx) { }
+        public async Task UpdateSingleVariant(Guid _variantId, DTOVariant updatedVariant, CancellationToken ctx) {
+          await _variantRepo.UpdateSingleVariant(_variantId, updatedVariant._Size, updatedVariant._Price, updatedVariant._Units, ctx);
+        }
 
         public async Task DeleteSingleVariant(Guid _variantId, CancellationToken ctx) {
           await _variantRepo.DeleteSingleVariant(_variantId, ctx);

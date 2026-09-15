@@ -1,5 +1,6 @@
 using ECommBackend.CustomErrors;
 using ECommBackend.DatabaseConns;
+using ECommBackend.DTOs.FrontendDTO;
 using ECommBackend.Models;
 using ECommBackend.Models.ModInterfaces;
 using ECommBackend.Repositories.RepoInterfaces;
@@ -24,12 +25,19 @@ namespace ECommBackend.Repositories
 
         public async Task<AdminModel?> GetSingleAdmin(CancellationToken ctx, Guid _userId)
         {
-            var result = await _SQLiteConn.Admins.FirstAsync(x => x.UserId == _userId);
+            var result = await _SQLiteConn.Admins.FirstOrDefaultAsync(x => x.UserId == _userId, ctx);
             if (result == null)
             {
                 throw new UserNotFoundError(_userId,$"{nameof(_userId)} doesn't exist");
             }
             return result;
+        }
+
+        // Returns null rather than throwing: an unknown email is a failed login, not a server fault,
+        // and the caller must not be able to tell it apart from a wrong password.
+        public async Task<AdminModel?> GetSingleAdmin(CancellationToken ctx, DTOLogin _login)
+        {
+            return await _SQLiteConn.Admins.FirstOrDefaultAsync(x => x.Email == _login.email, ctx);
         }
         public async Task DeleteAdmin(CancellationToken ctx, Guid _userId)
         {

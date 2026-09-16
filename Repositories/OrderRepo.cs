@@ -27,6 +27,19 @@ namespace ECommBackend.Repositories
             return result.AsQueryable();
         }
 
+        
+
+        public async Task UpdateOrder(Guid _orderId, OrderStatus status, CancellationToken ctx)
+        {
+            var result = await _SQLiteConn.Orders.FirstOrDefaultAsync(x=>x.OrderId == _orderId,ctx);
+            if (result == null)
+            {
+                throw new OrderNotFoundException($"Order {_orderId} can't be found ");
+            }
+            result.OrderStatus = status;
+            await _SQLiteConn.SaveChangesAsync(ctx);
+        }
+
         public async  Task<Guid> CreateOrder(OrderModel order, CancellationToken ctx) {
             await _SQLiteConn.Orders.AddAsync(order, ctx);
             await _SQLiteConn.SaveChangesAsync(ctx);

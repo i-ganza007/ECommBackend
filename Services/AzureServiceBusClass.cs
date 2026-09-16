@@ -9,8 +9,9 @@ namespace ECommBackend.Services
         private readonly IConfiguration _configuration;
         public ServiceBusClient _serviceBusClient;
         public ServiceBusAdministrationClient _serviceBusAdministrationClient;
-        public AzureServiceBusClass()
+        public AzureServiceBusClass(IConfiguration configuration)
         {
+            _configuration = configuration;
             _serviceBusClient = new ServiceBusClient(_configuration.GetSection("SecretKeys")["PrimaryConn"]) ;
             _serviceBusAdministrationClient = new ServiceBusAdministrationClient(_configuration.GetSection("SecretKeys")["PrimaryConn"]);
         }
@@ -19,11 +20,12 @@ namespace ECommBackend.Services
         {
 
             if (!(await _serviceBusAdministrationClient.QueueExistsAsync("OrderPlaced"))) {
-                _serviceBusAdministrationClient.CreateQueueAsync(new CreateQueueOptions("OrderPlaced")
+                await _serviceBusAdministrationClient.CreateQueueAsync(new CreateQueueOptions("OrderPlaced")
                 {
-                    RequiresSession = true,          
-                    RequiresDuplicateDetection = true, 
-                    MaxDeliveryCount=5
+                    RequiresSession = true,
+                    RequiresDuplicateDetection = true,
+                    MaxDeliveryCount = 5,
+                    LockDuration = TimeSpan.FromMinutes(2)
                 });
             }
             

@@ -63,14 +63,12 @@ namespace ECommBackend.Repositories
 
             foreach (var reservation in reservations)
             {
-                // The `Units >= Quantity` filter is part of the UPDATE, so the check and the
-                // decrement are one statement — two concurrent orders can't both pass a
-                // read-then-write check and oversell the same variant.
+               
                 var rowsAffected = await _SQLiteConn.Variants
                     .Where(x => x.VariantId == reservation.VariantId && x.Units >= reservation.Quantity)
                     .ExecuteUpdateAsync(
                         setters => setters.SetProperty(x => x.Units, x => x.Units - reservation.Quantity),
-                        ctx);
+                        ctx); // Runs immediately instead of defering like savechanges() .
 
                 if (rowsAffected != 1)
                 {

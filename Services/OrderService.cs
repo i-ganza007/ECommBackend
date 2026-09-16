@@ -12,9 +12,12 @@ namespace ECommBackend.Services
     {
         private readonly IOrderRepo _orderRepo;
         private readonly IProductRepo _productRepo;
-        public OrderService(IOrderRepo orderRepo, IProductRepo productRepo) {
+
+        private readonly AzureServiceBusClass _azureBus;
+        public OrderService(IOrderRepo orderRepo, IProductRepo productRepo, AzureServiceBusClass azureBus) {
           _orderRepo = orderRepo;
           _productRepo = productRepo;
+          _azureBus = azureBus;
         }
 
         public async Task<OrderDTO> GetSingleOrder(Guid _orderId, CancellationToken ctx) { 
@@ -36,9 +39,10 @@ namespace ECommBackend.Services
            // One query instead of one per id, so nothing here has to fan out into nested awaits.
            var products = await _productRepo.GetProductsByIds(productIds, ctx);
            GuardAllProductsExist(productIds, products);
+            var orderId = Guid.NewGuid();
 
            var newOrder = new OrderModel(
-               Guid.NewGuid(),
+               orderId,
                (double)products.Sum(ResolveUnitPrice),
                orderCreatorId,
                DateTime.UtcNow,
@@ -46,11 +50,38 @@ namespace ECommBackend.Services
 
            foreach (var product in products)
            {
+                foreach(var variant in product.Variants)
+                {
+                    var productVar = new ProductModel(
+                        product.ProductId,
+                        product.Base_SKU,
+                        product.Name,
+                        product.Description,
+                        product.AdminOwnerId,
+                        product.CategoryId,
+                        Texture: product.Texture,
+                        Skin_Type: product.Skin_Type,
+                        Key_Ingr: product.Key_Ingr
+                        ){Variants=new List<VariantModel> { variant} };
+
+
+                    var orderMess = new OrderModel(
+                        orderId,
+                        (double)variant.Price,
+                        orderCreatorId,
+                        DateTime.Now,
+                        OrderStatus.Pending
+                        )
+                    { Products=new List<ProductModel> { productVar } };
+                    await _azureBus.CreateOrder(orderMess);
+                }
                // Tracked entities from the same scoped context, so this only writes the join rows.
                newOrder.Products.Add(product);
            }
 
-           return await _orderRepo.CreateOrder(newOrder, ctx);
+            
+
+            return await _orderRepo.CreateOrder(newOrder, ctx);
         }
 
         private static List<Guid> ParseProductIds(ICollection<string> rawIds) {

@@ -62,7 +62,7 @@ namespace ECommBackend.Services
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
-                
+                _logger.LogInformation("Request Cancellation is requested");
             }
         }
 

@@ -26,6 +26,10 @@ namespace ECommBackend.Services
           return result.Select(x=>x.ModelToRecordDTO());
         }
 
+        public async Task UpdateOrderStatus(Guid _orderId,OrderStatus status,CancellationToken ctx) {
+             await _orderRepo.UpdateOrder(_orderId, status, ctx);
+        }
+
         public async Task<Guid> CreateOrder(DTOrder order, Guid orderCreatorId, CancellationToken ctx) {
            var productIds = ParseProductIds(order._ProductsIds);
 

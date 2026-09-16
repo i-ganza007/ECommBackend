@@ -48,9 +48,39 @@ namespace ECommBackend.Repositories
             // Image and owning product are deliberately not reassignable here.
             result.Size = size;
             result.Price = price;
-            result.Units = units;
+            result.Units += units; // Will add positive is adding units but negative if reducing 
 
             await _SQLiteConn.SaveChangesAsync(ctx);
+        }
+
+        public async Task<bool> TryReserveUnits(IReadOnlyCollection<VariantReservation> reservations, CancellationToken ctx) {
+            if (reservations.Count == 0)
+            {
+                return true;
+            }
+
+            await using var transaction = await _SQLiteConn.Database.BeginTransactionAsync(ctx);
+
+            foreach (var reservation in reservations)
+            {
+                // The `Units >= Quantity` filter is part of the UPDATE, so the check and the
+                // decrement are one statement — two concurrent orders can't both pass a
+                // read-then-write check and oversell the same variant.
+                var rowsAffected = await _SQLiteConn.Variants
+                    .Where(x => x.VariantId == reservation.VariantId && x.Units >= reservation.Quantity)
+                    .ExecuteUpdateAsync(
+                        setters => setters.SetProperty(x => x.Units, x => x.Units - reservation.Quantity),
+                        ctx);
+
+                if (rowsAffected != 1)
+                {
+                    await transaction.RollbackAsync(ctx);
+                    return false;
+                }
+            }
+
+            await transaction.CommitAsync(ctx);
+            return true;
         }
 
         public async Task DeleteSingleVariant(Guid _variantId, CancellationToken ctx) {

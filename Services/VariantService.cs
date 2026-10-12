@@ -31,6 +31,10 @@ namespace ECommBackend.Services
           await _variantRepo.UpdateSingleVariant(_variantId, updatedVariant._Size, updatedVariant._Price, updatedVariant._Units, ctx);
         }
 
+        public async Task<bool> TryReserveUnits(IReadOnlyCollection<VariantReservation> reservations, CancellationToken ctx) {
+          return await _variantRepo.TryReserveUnits(reservations, ctx);
+        }
+
         public async Task DeleteSingleVariant(Guid _variantId, CancellationToken ctx) {
           await _variantRepo.DeleteSingleVariant(_variantId, ctx);
         }

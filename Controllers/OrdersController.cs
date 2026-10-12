@@ -30,10 +30,18 @@ namespace ECommBackend.Controllers
          return Ok(result);
         }
 
+
+        [HttpGet("{orderId}")]
+        public async Task<IActionResult> GetOrderStatus(string orderId, CancellationToken ctx)
+        {
+            var result = await _orderRepo.GetSingleOrder(Guid.Parse(orderId), ctx);
+            return Ok(result.OrderStatus);
+        }
+
         [HttpPost]
         public async Task<IActionResult> CreateOrder([FromHeader(Name = "loggedInUserId")] string userId, DTOrder _order, CancellationToken ctx)
         {
-            // The caller owns the order, not whoever the body claims â€” _order._OrderCreatorId is ignored.
+            // The caller owns the order, not whoever the body claims — _order._OrderCreatorId is ignored.
             if (!Guid.TryParse(userId, out var orderCreatorId))
             {
                 return BadRequest($"'{userId}' is not a valid user id");

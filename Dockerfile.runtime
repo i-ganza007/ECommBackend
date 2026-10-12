@@ -1,0 +1,11 @@
+# Runtime-only image used by ci-full.yml: packages the output of `dotnet publish`
+# (downloaded as a workflow artifact) without rebuilding from source.
+FROM mcr.microsoft.com/dotnet/aspnet:10.0
+
+WORKDIR /app
+COPY . .
+
+ENV ASPNETCORE_URLS=http://+:8080
+EXPOSE 8080
+
+ENTRYPOINT ["dotnet", "ECommBackend.dll"]

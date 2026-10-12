@@ -55,6 +55,9 @@ builder.Services.AddScoped<ImageService>();
 builder.Services.AddScoped<VariantService>();
 builder.Services.AddScoped<CategoryService>();
 
+
+builder.Services.AddHostedService<AzureBackgroundService>();
+
 // IMiddleware implementations are resolved from DI per request, so they must be registered.
 builder.Services.AddScoped<GlobalExceptionLayer>();
 builder.Services.AddScoped<OperationCancelledHandler>();
@@ -74,7 +77,7 @@ builder.Services.AddAuthentication(options =>
 {
     var jwtSettings = builder.Configuration.GetSection("JwtSettings").Get<JwtSettings>();
 
-    options.RequireHttpsMetadata = true; // Always require HTTPS in production
+    options.RequireHttpsMetadata = true; 
     options.SaveToken = true;
     options.TokenValidationParameters = new TokenValidationParameters
     {
@@ -116,14 +119,12 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddAuthorizationBuilder().AddPolicy("adminUsers", policy => policy.RequireRole(Roles.admin.ToString())).AddPolicy("users", policy => policy.RequireRole(Roles.logged_in.ToString()));
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
     app.UseHsts();
 }
 
-// Outermost, and before MapControllers: middleware added after the endpoint is mapped
-// never gets to wrap the controller that threw.
+
 app.UseMiddleware<GlobalExceptionLayer>();
 app.UseMiddleware<OperationCancelledHandler>();
 

@@ -37,7 +37,9 @@ builder.Services.AddDbContext<SQLiteConn>(options =>
 builder.Logging.ClearProviders();
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JWTSettings")); // Maps JWTSettings to the appsettings.json
 
-builder.Host.UseSerilog(); 
+builder.Host.UseSerilog((context, services, loggerConfig) => loggerConfig
+    .ReadFrom.Configuration(context.Configuration)
+    .ReadFrom.Services(services));
 
 builder.Services.AddScoped<IProductRepo,ProductRepo>();
 builder.Services.AddScoped<IUserRepo, UserRepo>();
@@ -49,6 +51,7 @@ builder.Services.AddScoped<IVariantRepo, VariantRepo>();
 builder.Services.AddScoped<ProductService>();
 builder.Services.AddScoped<AdminService>();
 builder.Services.AddScoped<UserService>();
+builder.Services.AddSingleton<AzureServiceBusClass>();
 builder.Services.AddSingleton<IJWTService, JwtServiceAuth>();
 builder.Services.AddScoped<OrderService>();
 builder.Services.AddScoped<ImageService>();

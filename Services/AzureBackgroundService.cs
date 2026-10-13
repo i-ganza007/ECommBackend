@@ -10,7 +10,7 @@ namespace ECommBackend.Services
 {
     public class AzureBackgroundService:BackgroundService
     {
-        private const string QueueName = "OrderPlaced";
+        private const string QueueName = AzureServiceBusClass.OrderQueueName;
 
         private readonly ILogger<AzureBackgroundService> _logger;
 
@@ -37,9 +37,14 @@ namespace ECommBackend.Services
         {
             if (!await _serviceBusAdministrationClient.QueueExistsAsync(QueueName, stoppingToken))
             {
-                _logger.LogError("Queue {QueueName} doesn't exist in the current scope", QueueName);
-                return;
+                _logger.LogWarning("Queue {QueueName} doesn't exist, creating it", QueueName);
+                await _serviceBusAdministrationClient.CreateQueueAsync(
+                    AzureServiceBusClass.OrderQueueOptions(), stoppingToken);
             }
+
+            // Basic tier has no sessions, so a single receiver handling one message at a time
+            // keeps stock reservations from racing each other.
+            await using var receiver = _serviceBusClient.CreateReceiver(QueueName);
 
             try
             {
@@ -47,7 +52,13 @@ namespace ECommBackend.Services
                 {
                     try
                     {
-                        await DrainNextSessionAsync(stoppingToken);
+                        var message = await receiver.ReceiveMessageAsync(cancellationToken: stoppingToken);
+                        if (message is null)
+                        {
+                            continue;
+                        }
+
+                        await HandleOrderPlacedAsync(receiver, message, stoppingToken);
                     }
                     catch (ServiceBusException ex) when (ex.Reason == ServiceBusFailureReason.ServiceTimeout)
                     {
@@ -55,7 +66,7 @@ namespace ECommBackend.Services
                     }
                     catch (Exception ex) when (ex is not OperationCanceledException)
                     {
-                        _logger.LogError(ex, "Session processing on {QueueName} failed", QueueName);
+                        _logger.LogError(ex, "Message processing on {QueueName} failed", QueueName);
                         await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
                     }
                 }
@@ -66,27 +77,9 @@ namespace ECommBackend.Services
             }
         }
 
-      
-        private async Task DrainNextSessionAsync(CancellationToken stoppingToken)
-        {
-            await using var receiver = await _serviceBusClient.AcceptNextSessionAsync(
-                QueueName,
-                cancellationToken: stoppingToken);
-
-            while (!stoppingToken.IsCancellationRequested)
-            {
-                var message = await receiver.ReceiveMessageAsync(cancellationToken: stoppingToken);
-                if (message is null)
-                {
-                    return;
-                }
-
-                await HandleOrderPlacedAsync(receiver, message, stoppingToken);
-            }
-        }
 
         private async Task HandleOrderPlacedAsync(
-            ServiceBusSessionReceiver receiver,
+            ServiceBusReceiver receiver,
             ServiceBusReceivedMessage message,
             CancellationToken ctx)
         {
@@ -112,6 +105,21 @@ namespace ECommBackend.Services
             using var scope = _scopeFactory.CreateScope();
             var variantService = scope.ServiceProvider.GetRequiredService<VariantService>();
             var orderService = scope.ServiceProvider.GetRequiredService<OrderService>();
+            var orderRepo = scope.ServiceProvider.GetRequiredService<IOrderRepo>();
+
+            // No duplicate detection on Basic tier: a resend or a redelivery after a crash
+            // must not reserve stock twice, so only Pending orders are handled.
+            var storedOrder = await orderRepo.GetSingleOrder(order.OrderId, ctx);
+            if (storedOrder.OrderStatus != OrderStatus.Pending)
+            {
+                _logger.LogInformation(
+                    "Order {OrderId} already {Status}, skipping duplicate message {MessageId}",
+                    order.OrderId,
+                    storedOrder.OrderStatus,
+                    message.MessageId);
+                await receiver.CompleteMessageAsync(message, ctx);
+                return;
+            }
 
             if (!TryBuildReservations(order, out var reservations, out var rejectionReason))
             {

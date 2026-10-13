@@ -74,7 +74,7 @@ public class UsersController : ControllerBase
         Response.Cookies.Append("access_token", _jwtService.GenerateAccessToken(user, role), new CookieOptions
         {
             HttpOnly = true,
-            Secure = true,
+            // Secure = true,
             SameSite = SameSiteMode.Strict,
         });
     }

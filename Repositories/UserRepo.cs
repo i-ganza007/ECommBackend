@@ -27,6 +27,8 @@ namespace ECommBackend.Repositories
             return result;
         }
 
+
+
         // Returns null rather than throwing: an unknown email is a failed login, not a server fault,
         // and the caller must not be able to tell it apart from a wrong password.
         public async Task<UserModel?> GetSingleUser(CancellationToken ctx, DTOLogin _login)

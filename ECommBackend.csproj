@@ -3,26 +3,13 @@
 	<PropertyGroup>
 		<TargetFramework>net10.0</TargetFramework>
 		<Nullable>enable</Nullable>
+		<ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
+
 		<ImplicitUsings>enable</ImplicitUsings>
-		<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-		<GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
-		<GenerateAssemblyFileVersionAttribute>false</GenerateAssemblyFileVersionAttribute>
-		<GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
-		<GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
-		<GenerateAssemblyDescriptionAttribute>false</GenerateAssemblyDescriptionAttribute>
-		<GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
-		<GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
 		<UserSecretsId>8f5a7277-113e-4e08-b016-5a813dff874a</UserSecretsId>
+		<!-- The test project and local publish output live inside this folder; keep them out of every default glob (Compile, Content, None, ...) -->
+		<DefaultItemExcludes>$(DefaultItemExcludes);ECommBackend.Tests/**;published_code/**</DefaultItemExcludes>
 	</PropertyGroup>
-
-	
-
-	<ItemGroup>
-		<Compile Remove="ECommBackend.Tests/**/*.cs" />
-		<EmbeddedResource Remove="ECommBackend.Tests/**/*.resx" />
-		<None Remove="ECommBackend.Tests/**/*" />
-		<None Include="ECommBackend.Tests/**/*" Exclude="ECommBackend.Tests/**/bin/**;ECommBackend.Tests/**/obj/**" />
-	</ItemGroup>
 
 	<ItemGroup>
 		<PackageReference Include="Azure.Messaging.ServiceBus" Version="7.20.2" />

@@ -50,8 +50,27 @@ namespace ECommBackend.Services
 
            foreach (var product in products)
            {
+               // Tracked entities from the same scoped context, so this only writes the join rows.
+               newOrder.Products.Add(product);
+           }
+
+            // Saved before publishing: the consumer looks the order up by id, so it has to exist first.
+            await _orderRepo.CreateOrder(newOrder, ctx);
+
+           foreach (var product in products)
+           {
                 foreach(var variant in product.Variants)
                 {
+                    // Copied without its navigations: the tracked variant's Product points back here,
+                    // which the JSON serializer can't follow.
+                    var variantCopy = new VariantModel(
+                        variant.VariantId,
+                        variant.Size,
+                        variant.Price,
+                        variant.ProductModelId,
+                        variant.Units,
+                        variant.VariantImageId);
+
                     var productVar = new ProductModel(
                         product.ProductId,
                         product.Base_SKU,
@@ -59,10 +78,10 @@ namespace ECommBackend.Services
                         product.Description,
                         product.AdminOwnerId,
                         product.CategoryId,
-                        Texture: product.Texture,
-                        Skin_Type: product.Skin_Type,
-                        Key_Ingr: product.Key_Ingr
-                        ){Variants=new List<VariantModel> { variant} };
+                        texture: product.Texture,
+                        skin_Type: product.Skin_Type,
+                        key_Ingr: product.Key_Ingr
+                        ){Variants=new List<VariantModel> { variantCopy } };
 
 
                     var orderMess = new OrderModel(
@@ -75,13 +94,9 @@ namespace ECommBackend.Services
                     { Products=new List<ProductModel> { productVar } };
                     await _azureBus.CreateOrder(orderMess);
                 }
-               // Tracked entities from the same scoped context, so this only writes the join rows.
-               newOrder.Products.Add(product);
            }
 
-            
-
-            return await _orderRepo.CreateOrder(newOrder, ctx);
+            return orderId;
         }
 
         private static List<Guid> ParseProductIds(ICollection<string> rawIds) {

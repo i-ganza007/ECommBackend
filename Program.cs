@@ -8,8 +8,12 @@ using ECommBackend.Repositories.RepoInterfaces;
 using ECommBackend.Services;
 using ECommBackend.Services.IJWTServices;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Trace;
 using Serilog;
 using System.Text;
 
@@ -34,12 +38,23 @@ builder.Services.AddDbContext<SQLiteConn>(options =>
 {
     options.UseSqlite(builder.Configuration.GetConnectionString("ECommSQLite"));
 });
+// Tagged so /health/db runs only this check, and /health/live never waits on the database.
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<SQLiteConn>("database", tags: ["db"]);
 builder.Logging.ClearProviders();
+
+// After ClearProviders, or it would remove the OpenTelemetry logger that ships logs to Aspire.
+builder.AddServiceDefaults();
+builder.Services.ConfigureOpenTelemetryTracerProvider(tracing => tracing.AddEntityFrameworkCoreInstrumentation());
+// EF Core's own meter: active DbContexts, queries, SaveChanges, optimistic concurrency failures.
+builder.Services.ConfigureOpenTelemetryMeterProvider(metrics => metrics.AddMeter("Microsoft.EntityFrameworkCore"));
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JWTSettings")); // Maps JWTSettings to the appsettings.json
 
 builder.Host.UseSerilog((context, services, loggerConfig) => loggerConfig
     .ReadFrom.Configuration(context.Configuration)
-    .ReadFrom.Services(services));
+    .ReadFrom.Services(services),
+    // Hands Serilog events on to the OpenTelemetry logger too, so they show up in the dashboard.
+    writeToProviders: true);
 
 builder.Services.AddScoped<IProductRepo,ProductRepo>();
 builder.Services.AddScoped<IUserRepo, UserRepo>();
@@ -61,7 +76,6 @@ builder.Services.AddScoped<CategoryService>();
 
 builder.Services.AddHostedService<AzureBackgroundService>();
 
-// IMiddleware implementations are resolved from DI per request, so they must be registered.
 builder.Services.AddScoped<GlobalExceptionLayer>();
 builder.Services.AddScoped<OperationCancelledHandler>();
 
@@ -122,6 +136,18 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddAuthorizationBuilder().AddPolicy("adminUsers", policy => policy.RequireRole(Roles.admin.ToString())).AddPolicy("users", policy => policy.RequireRole(Roles.logged_in.ToString()));
 var app = builder.Build();
 
+
+app.MapHealthChecks("/health/live", new HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("live")
+});
+// Database: can we reach SQLite? Returns 503 when it can't.
+app.MapHealthChecks("/health/db", new HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("db"),
+    ResponseWriter = WriteHealthJson
+});
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseHsts();
@@ -146,5 +172,25 @@ if (app.Environment.IsDevelopment())
 }
 
 app.MapControllers();
+app.MapDefaultEndpoints();
 
 app.Run();
+
+// Status per check plus how long it took, instead of the default plain "Healthy"/"Unhealthy" text.
+// Exception details are left out so a failing probe doesn't leak connection info.
+static Task WriteHealthJson(HttpContext context, HealthReport report)
+{
+    context.Response.ContentType = "application/json";
+    return context.Response.WriteAsJsonAsync(new
+    {
+        status = report.Status.ToString(),
+        totalDurationMs = report.TotalDuration.TotalMilliseconds,
+        checks = report.Entries.Select(entry => new
+        {
+            name = entry.Key,
+            status = entry.Value.Status.ToString(),
+            durationMs = entry.Value.Duration.TotalMilliseconds,
+            description = entry.Value.Description
+        })
+    });
+}

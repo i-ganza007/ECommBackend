@@ -10,6 +10,9 @@ namespace ECommBackend.CustomErrors.ExceptionFilterLayer
             }
             catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested) {
 
+                // Not an error, but worth seeing in traces when clients give up on slow requests.
+                System.Diagnostics.Activity.Current?.SetTag("http.request.aborted", true);
+
                 // Only the client hanging up gets 499; a cancellation from anywhere else is a real fault.
                 if (context.Response.HasStarted)
                 {

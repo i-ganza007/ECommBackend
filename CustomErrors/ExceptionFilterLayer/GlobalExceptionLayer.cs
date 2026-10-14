@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace ECommBackend.CustomErrors.ExceptionFilterLayer
 {
     public class GlobalExceptionLayer : IMiddleware
@@ -19,6 +21,13 @@ namespace ECommBackend.CustomErrors.ExceptionFilterLayer
             catch (Exception ex) {
 
                 _logger.LogError(ex, "Unhandled exception on {Method} {Path}", context.Request.Method, context.Request.Path);
+
+                // Caught here, the exception never reaches the ASP.NET Core instrumentation,
+                // so it's put on the request span by hand or the trace would only show a bare 500.
+                var activity = Activity.Current;
+                activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+                activity?.AddException(ex);
+                activity?.SetTag("error.type", ex.GetType().FullName);
 
                 // Headers are already on the wire at this point, so there is no response left to rewrite.
                 if (context.Response.HasStarted)

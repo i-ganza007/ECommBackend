@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using ECommBackend.CustomErrors;
 using ECommBackend.DTOs;
 using ECommBackend.DTOs.FrontendDTO;
@@ -13,10 +14,13 @@ namespace ECommBackend.Services
         private readonly IOrderRepo _orderRepo;
         private readonly IProductRepo _productRepo;
 
+        private readonly IUserRepo _userRepo;
+
         private readonly AzureServiceBusClass _azureBus;
-        public OrderService(IOrderRepo orderRepo, IProductRepo productRepo, AzureServiceBusClass azureBus) {
+        public OrderService(IOrderRepo orderRepo, IProductRepo productRepo, IUserRepo userRepo, AzureServiceBusClass azureBus) {
           _orderRepo = orderRepo;
           _productRepo = productRepo;
+          _userRepo = userRepo;
           _azureBus = azureBus;
         }
 
@@ -31,12 +35,30 @@ namespace ECommBackend.Services
 
         public async Task UpdateOrderStatus(Guid _orderId,OrderStatus status,CancellationToken ctx) {
              await _orderRepo.UpdateOrder(_orderId, status, ctx);
+
+             if (status is OrderStatus.Processed or OrderStatus.Rejected)
+             {
+                 await PublishOrderEmail(_orderId, ctx);
+             }
+        }
+
+        private async Task PublishOrderEmail(Guid _orderId, CancellationToken ctx) {
+             var order = await _orderRepo.GetSingleOrder(_orderId, ctx);
+             var user = await _userRepo.GetSingleUser(ctx, order.OrderCreatorId)
+                 ?? throw new UserNotFoundError(order.OrderCreatorId, $"Order {_orderId} has no creator");
+
+             await _azureBus.PublishOrderEmail(new OrderEmailMessage(
+                 order.OrderId,
+                 user.Email,
+                 $"{user.FirstName} {user.LastName}",
+                 order.OrderStatus,
+                 order.TotalPrice,
+                 order.CreatedDate), ctx);
         }
 
         public async Task<Guid> CreateOrder(DTOrder order, Guid orderCreatorId, CancellationToken ctx) {
            var productIds = ParseProductIds(order._ProductsIds);
 
-           // One query instead of one per id, so nothing here has to fan out into nested awaits.
            var products = await _productRepo.GetProductsByIds(productIds, ctx);
            GuardAllProductsExist(productIds, products);
             var orderId = Guid.NewGuid();
@@ -50,19 +72,18 @@ namespace ECommBackend.Services
 
            foreach (var product in products)
            {
-               // Tracked entities from the same scoped context, so this only writes the join rows.
                newOrder.Products.Add(product);
            }
 
-            // Saved before publishing: the consumer looks the order up by id, so it has to exist first.
             await _orderRepo.CreateOrder(newOrder, ctx);
+            OrderTelemetry.RecordPlaced(newOrder.TotalPrice, products.Count);
+            Activity.Current?.SetTag("order.id", orderId);
 
            foreach (var product in products)
            {
                 foreach(var variant in product.Variants)
                 {
-                    // Copied without its navigations: the tracked variant's Product points back here,
-                    // which the JSON serializer can't follow.
+                   
                     var variantCopy = new VariantModel(
                         variant.VariantId,
                         variant.Size,
@@ -126,8 +147,7 @@ namespace ECommBackend.Services
             }
         }
 
-        // DTOrder only carries product ids, so an order has no variant of its own to price against.
-        // Cheapest in-stock variant is the stand-in rule; replace this once orders carry variants.
+
         private static decimal ResolveUnitPrice(ProductModel product) {
             var variant = product.Variants
                 .Where(x => x.Units > 0)

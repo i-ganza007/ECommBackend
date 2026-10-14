@@ -47,6 +47,7 @@ namespace ECommBackend.Controllers
         public async Task<IActionResult> LoginAdmin(DTOLogin _adminLogin, CancellationToken ctx)
         {
             var admin = await _adminService.AuthenticateAdmin(ctx, _adminLogin);
+            AuthTelemetry.RecordLogin("admin", admin is not null);
             if (admin is null)
             {
                 // Same answer for an unknown email and a wrong password, so neither can be probed for.
@@ -62,6 +63,7 @@ namespace ECommBackend.Controllers
         public async Task<IActionResult> CreateAdmin(DTOAdmin _dtoadmin, CancellationToken ctx)
         {
             var admin = await _adminService.RegisterAdmin(ctx, _dtoadmin);
+            AuthTelemetry.RecordRegistration("admin");
 
             IssueAccessToken(admin);
             return CreatedAtRoute("singleadmin", new { adminId = admin.UserId }, value: admin.ModelToRecordDTO());

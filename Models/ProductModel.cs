@@ -64,6 +64,14 @@ namespace ECommBackend.Models
         AdminOwnerId = adminOwnerId;
         }
 
+        [SetsRequiredMembers]
+        public ProductModel(Guid productId, string base_SKU, string name,  string description, Guid adminOwnerId, Guid categoryId,string texture,string skin_Type,string key_Ingr):this(productId,  base_SKU,  name,   description,  adminOwnerId,  categoryId) {
+        
+        Texture = texture;
+        Skin_Type = skin_Type;
+        Key_Ingr = key_Ingr;
+        }
+
         public void Deconstruct(
         out Guid productId,
         out string name,

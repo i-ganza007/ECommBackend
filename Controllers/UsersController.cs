@@ -49,6 +49,7 @@ public class UsersController : ControllerBase
     [HttpPost("auth/login")]
     public async Task<IActionResult> LoginUser(DTOLogin _userLogin, CancellationToken ctx) {
         var user = await _userService.AuthenticateUser(ctx, _userLogin);
+        AuthTelemetry.RecordLogin("user", user is not null);
         if (user is null)
         {
             // Same answer for an unknown email and a wrong password, so neither can be probed for.
@@ -64,6 +65,7 @@ public class UsersController : ControllerBase
     public async Task<IActionResult>   CreateUser(DTOUser _dtouser,CancellationToken ctx)
     {
         var userMod = await _userService.RegisterUser(ctx, _dtouser);
+        AuthTelemetry.RecordRegistration("user");
 
         IssueAccessToken(userMod, Roles.logged_in);
         return CreatedAtRoute("singleuser",new {userId=userMod.UserId},value: userMod.ModelToRecordDTO());
@@ -74,7 +76,7 @@ public class UsersController : ControllerBase
         Response.Cookies.Append("access_token", _jwtService.GenerateAccessToken(user, role), new CookieOptions
         {
             HttpOnly = true,
-            Secure = true,
+            // Secure = true,
             SameSite = SameSiteMode.Strict,
         });
     }

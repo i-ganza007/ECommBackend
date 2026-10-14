@@ -13,6 +13,9 @@ namespace ECommBackend.CustomErrors
             {
             UserId = _userId;
             }
+        public UserNotFoundError(string _email,string message,Exception innerException) : base(message, innerException)
+        {
+        }
 
         public UserNotFoundError(string message,Guid _userId ,Exception InnerException) : base(message, InnerException) {
             {

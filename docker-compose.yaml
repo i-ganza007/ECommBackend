@@ -1,0 +1,52 @@
+version: '3.8'
+services:
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: mailpit
+    restart: unless-stopped
+    ports:
+      - "1025:1025"    
+      - "8025:8025"    
+    environment:
+      - MP_MAX_MESSAGES=5000
+      - MP_DATA_FILE=/data/mailpit.db
+    volumes:
+      - mailpit_data:/data
+  ecommbackend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5000:80"
+    healthcheck:
+      test: ["CMD-SHELL", "curl", "-f http://localhost/health/live || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - DOTNET_USE_POLLING_FILE_WATCHER=1
+      - DOTNET_RUNNING_IN_CONTAINER=true
+      - DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false
+      - DOTNET_HOST_PATH=/usr/share/dotnet/dotnet
+      - DOTNET_ROOT=/usr/share/dotnet
+    volumes:
+      - ./published_code:/app/published_code:cached
+      - $APPDATA/Microsoft/UserSecrets:/root/.microsoft/usersecrets:ro
+  consumerProject:
+    build:
+      context: ./ConsumerProject
+      dockerfile: Dockerfile
+    ports:
+      - "5000:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - DOTNET_USE_POLLING_FILE_WATCHER=1
+      - DOTNET_RUNNING_IN_CONTAINER=true
+      - DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false
+      - DOTNET_HOST_PATH=/usr/share/dotnet/dotnet
+      - DOTNET_ROOT=/usr/share/dotnet
+    volumes:
+      - $APPDATA/Microsoft/UserSecrets:/root/.microsoft/usersecrets:ro
+      - ./published_code:/app/published_code:cached

@@ -5,7 +5,7 @@ using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.AddServiceDefaults();
+builder.AddServiceDefaults("order-consumer");
 
 MailKit.Telemetry.SmtpClient.Configure();
 builder.Services.ConfigureOpenTelemetryTracerProvider(tracing =>

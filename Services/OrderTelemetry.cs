@@ -10,7 +10,8 @@ namespace ECommBackend.Services
         public static readonly ActivitySource Source = new(Name);
         private static readonly Meter Meter = new(Name);
 
-        public const string OutcomeFailed = "failed";
+        public const string OutcomeConfirmed = "confirmed";
+        public const string OutcomeRejected = "rejected";
 
         private static readonly Counter<long> OrdersPlaced = Meter.CreateCounter<long>(
             "ecomm.orders.placed", "{order}", "Orders accepted by the API and queued for processing");
@@ -19,27 +20,38 @@ namespace ECommBackend.Services
             "ecomm.orders.value", description: "Total price of each placed order");
 
         private static readonly Counter<long> OrdersProcessed = Meter.CreateCounter<long>(
-            "ecomm.orders.processed", "{message}", "Order messages handled, by outcome");
+            "ecomm.orders.processed", "{order}", "Orders that reached a final status, by outcome");
 
         private static readonly Histogram<double> ProcessingDuration = Meter.CreateHistogram<double>(
-            "ecomm.orders.processing.duration", "s", "Time to handle one order message, stock reservation included");
+            "ecomm.orders.processing.duration", "ms", "Time from Pending to saving a final order status");
+
+        private static long _pendingOrders;
+        private static readonly ObservableGauge<long> PendingOrders = Meter.CreateObservableGauge(
+            "ecomm.orders.pending", () => Interlocked.Read(ref _pendingOrders), "{order}",
+            "Number of orders currently in Pending status");
 
         private static readonly Counter<long> MessagesPublished = Meter.CreateCounter<long>(
             "ecomm.messages.published", "{message}", "Messages sent to Service Bus, by queue");
 
-        public static void RecordPlaced(double totalPrice, int productCount)
+        public static void RecordPlaced(double totalPrice)
         {
-            var tags = new TagList { { "order.product_count", productCount } };
-            OrdersPlaced.Add(1, tags);
-            OrderValue.Record(totalPrice, tags);
+            OrdersPlaced.Add(1);
+            OrderValue.Record(totalPrice);
         }
 
-        public static void RecordProcessed(string outcome, TimeSpan elapsed)
+        public static void RecordFinalized(string outcome, string? rejectionReason, double elapsedMilliseconds)
         {
             var tags = new TagList { { "order.outcome", outcome } };
+            if (outcome == OutcomeRejected && rejectionReason is not null)
+            {
+                tags.Add("order.rejection_reason", rejectionReason);
+            }
+
             OrdersProcessed.Add(1, tags);
-            ProcessingDuration.Record(elapsed.TotalSeconds, tags);
+            ProcessingDuration.Record(elapsedMilliseconds, tags);
         }
+
+        public static void SetPendingOrders(long count) => Interlocked.Exchange(ref _pendingOrders, count);
 
         public static void RecordPublished(string queueName) =>
             MessagesPublished.Add(1, new KeyValuePair<string, object?>("messaging.destination.name", queueName));

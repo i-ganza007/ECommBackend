@@ -12,6 +12,8 @@ namespace ECommBackend.Repositories.RepoInterfaces
 
         public Task UpdateOrder(Guid _orderId, OrderStatus status, CancellationToken ctx);
 
+        public Task<long> CountPendingOrders(CancellationToken ctx);
+
         
 
         public Task<UserModel> GetOrderCreator(Guid _userId, CancellationToken ctx);

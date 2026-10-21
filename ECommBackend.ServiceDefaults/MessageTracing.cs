@@ -4,9 +4,7 @@ using OpenTelemetry.Context.Propagation;
 
 namespace Microsoft.Extensions.Hosting;
 
-// Carries the W3C trace context across Service Bus in the message's application properties,
-// so a consumer's processing span joins the trace of the request that published the message.
-// Works on plain dictionaries so this project doesn't need to reference the Service Bus SDK.
+
 public static class MessageTracing
 {
     private static TextMapPropagator Propagator => Propagators.DefaultTextMapPropagator;

@@ -107,7 +107,6 @@ namespace ECommBackend.Services
             }
         }
 
-        // Returns the outcome so the span tag and the metrics are recorded in one place.
         private async Task<string> ProcessOrderAsync(
             ServiceBusReceiver receiver,
             ServiceBusReceivedMessage message,

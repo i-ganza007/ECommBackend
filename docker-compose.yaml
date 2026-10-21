@@ -38,6 +38,8 @@ services:
     build:
       context: ./ConsumerProject
       dockerfile: Dockerfile
+    depends_on:
+      - mailpit
     ports:
       - "5000:80"
     environment:

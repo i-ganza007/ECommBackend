@@ -3,7 +3,6 @@ using System.Diagnostics.Metrics;
 
 namespace ConsumerProject.Services;
 
-// Email metrics. The name matches the ECommBackend.* meter filter in ServiceDefaults.
 public static class EmailTelemetry
 {
     public const string Name = "ECommBackend.EmailConsumer";

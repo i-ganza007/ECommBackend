@@ -10,7 +10,6 @@ public class ConsumerBackground : BackgroundService
 {
     public const string EmailQueueName = "orderemailqueue";
 
-    // Matches the ECommBackend.* source ServiceDefaults listens to.
     public static readonly ActivitySource Source = new(EmailTelemetry.Name);
 
     private readonly ILogger<ConsumerBackground> _logger;
@@ -78,7 +77,6 @@ public class ConsumerBackground : BackgroundService
         ServiceBusReceivedMessage message,
         CancellationToken ctx)
     {
-        // Continues the trace from the producer, so the email shows up under the order that caused it.
         using var activity = MessageTracing.StartProcess(
             Source,
             EmailQueueName,

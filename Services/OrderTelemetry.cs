@@ -3,7 +3,6 @@ using System.Diagnostics.Metrics;
 
 namespace ECommBackend.Services
 {
-    // Spans and metrics for the order pipeline. Both names match the ECommBackend.* filters in ServiceDefaults.
     public static class OrderTelemetry
     {
         public const string Name = "ECommBackend.Orders";
@@ -11,7 +10,6 @@ namespace ECommBackend.Services
         public static readonly ActivitySource Source = new(Name);
         private static readonly Meter Meter = new(Name);
 
-        // Used when processing throws before reaching an outcome.
         public const string OutcomeFailed = "failed";
 
         private static readonly Counter<long> OrdersPlaced = Meter.CreateCounter<long>(

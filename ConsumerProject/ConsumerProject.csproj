@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <UserSecretsId>8f5a7277-113e-4e08-b016-5a813dff874a</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MailKit" />
+    <PackageReference Include="MimeKit" />
+    <PackageReference Include="Azure.Messaging.ServiceBus" />
+    <PackageReference Include="OpenTelemetry" />
+    <PackageReference Include="Serilog" />
+		<PackageReference Include="Serilog.AspNetCore" />
+		<PackageReference Include="Serilog.Settings.Configuration" />
+		<PackageReference Include="Serilog.Sinks.Console" />
+		<PackageReference Include="Serilog.Sinks.File" />
+    <PackageReference Include="Newtonsoft.Json" />
+    <!-- Pinned above the vulnerable version pulled in transitively (MimeKit / SqlClient). -->
+    <PackageReference Include="System.Security.Cryptography.Pkcs" />
+
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ECommBackend.ServiceDefaults\ECommBackend.ServiceDefaults.csproj" />
+  </ItemGroup>
+
+</Project>

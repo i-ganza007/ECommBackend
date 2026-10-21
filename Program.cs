@@ -49,6 +49,10 @@ builder.Services.ConfigureOpenTelemetryTracerProvider(tracing => tracing.AddEnti
 // EF Core's own meter: active DbContexts, queries, SaveChanges, optimistic concurrency failures.
 builder.Services.ConfigureOpenTelemetryMeterProvider(metrics => metrics.AddMeter("Microsoft.EntityFrameworkCore"));
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JWTSettings")); // Maps JWTSettings to the appsettings.json
+builder.Services.AddOptions<ServiceBusSettings>()
+    .Bind(builder.Configuration.GetSection("SecretKeys"))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
 
 builder.Host.UseSerilog((context, services, loggerConfig) => loggerConfig
     .ReadFrom.Configuration(context.Configuration)

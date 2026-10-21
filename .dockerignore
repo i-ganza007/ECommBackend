@@ -1,3 +1,8 @@
-/bin
-/obj
-/.git
+.git/
+.vs/
+**/bin/
+**/obj/
+**/TestResults/
+published_code/
+ECommBackend.Tests/
+ECommBackend.AppHost/

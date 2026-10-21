@@ -2,6 +2,7 @@ using System.Diagnostics;
 using Azure.Messaging.ServiceBus;
 using Azure.Messaging.ServiceBus.Administration;
 using ConsumerProject.Models;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 
 namespace ConsumerProject.Services;
@@ -17,13 +18,12 @@ public class ConsumerBackground : BackgroundService
     private readonly ServiceBusClient _serviceBusClient;
     private readonly ServiceBusAdministrationClient _serviceBusAdministrationClient;
 
-    public ConsumerBackground(ILogger<ConsumerBackground> logger, EmailSender emailSender, IConfiguration configuration)
+    public ConsumerBackground(ILogger<ConsumerBackground> logger, EmailSender emailSender, IOptions<ServiceBusSettings> serviceBusSettings)
     {
         _logger = logger;
         _emailSender = emailSender;
 
-        var connectionString = configuration["SecretKeys:PrimaryConn"]
-            ?? throw new InvalidOperationException("SecretKeys:PrimaryConn isn't configured");
+        var connectionString = serviceBusSettings.Value.PrimaryConn;
         _serviceBusClient = new ServiceBusClient(connectionString);
         _serviceBusAdministrationClient = new ServiceBusAdministrationClient(connectionString);
     }

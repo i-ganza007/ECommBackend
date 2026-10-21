@@ -3,18 +3,18 @@ using Newtonsoft.Json;
 using Azure.Messaging.ServiceBus.Administration;
 using ECommBackend.DTOs;
 using ECommBackend.Models;
+using Microsoft.Extensions.Options;
 namespace ECommBackend.Services
 {
     public class AzureServiceBusClass
     {
-        private readonly IConfiguration _configuration;
         public ServiceBusClient _serviceBusClient;
         public ServiceBusAdministrationClient _serviceBusAdministrationClient;
-        public AzureServiceBusClass(IConfiguration configuration)
+        public AzureServiceBusClass(IOptions<ServiceBusSettings> serviceBusSettings)
         {
-            _configuration = configuration;
-            _serviceBusAdministrationClient = new ServiceBusAdministrationClient(_configuration["SecretKeys:PrimaryConn"]);
-            _serviceBusClient = new ServiceBusClient(_configuration["SecretKeys:PrimaryConn"]) ;
+            var connectionString = serviceBusSettings.Value.PrimaryConn;
+            _serviceBusAdministrationClient = new ServiceBusAdministrationClient(connectionString);
+            _serviceBusClient = new ServiceBusClient(connectionString);
            
         }
 

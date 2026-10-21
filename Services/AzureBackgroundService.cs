@@ -5,6 +5,7 @@ using Newtonsoft.Json;
 using ECommBackend.Models;
 using ECommBackend.Models.ModInterfaces;
 using ECommBackend.Repositories.RepoInterfaces;
+using Microsoft.Extensions.Options;
 
 
 namespace ECommBackend.Services
@@ -24,12 +25,12 @@ namespace ECommBackend.Services
         public AzureBackgroundService(
             ILogger<AzureBackgroundService> logger,
             IServiceScopeFactory scopeFactory,
-            IConfiguration configuration)
+            IOptions<ServiceBusSettings> serviceBusSettings)
         {
             _logger = logger;
             _scopeFactory = scopeFactory;
 
-            var connectionString = configuration.GetSection("SecretKeys")["PrimaryConn"];
+            var connectionString = serviceBusSettings.Value.PrimaryConn;
             _serviceBusClient = new ServiceBusClient(connectionString);
             _serviceBusAdministrationClient = new ServiceBusAdministrationClient(connectionString);
         }

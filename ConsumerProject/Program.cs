@@ -19,6 +19,10 @@ builder.Host.UseSerilog((context, services, loggerConfig) => loggerConfig
     writeToProviders: true);
 
 builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("Smtp"));
+builder.Services.AddOptions<ServiceBusSettings>()
+    .Bind(builder.Configuration.GetSection("SecretKeys"))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
 builder.Services.AddSingleton<EmailSender>();
 builder.Services.AddHostedService<ConsumerBackground>();
 

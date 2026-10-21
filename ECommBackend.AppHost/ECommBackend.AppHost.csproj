@@ -1,0 +1,13 @@
+<Project Sdk="Aspire.AppHost.Sdk/13.6.1">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <UserSecretsId>5d0f4b7e-8a3c-4f1e-9c2d-6b7a1e3f9d42</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ECommBackend.csproj" />
+    <ProjectReference Include="..\ConsumerProject\ConsumerProject.csproj" />
+  </ItemGroup>
+
+</Project>

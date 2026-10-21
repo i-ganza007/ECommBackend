@@ -43,7 +43,7 @@ namespace ECommBackend.Services
               Guid.NewGuid(),
               _newUser._FirstName,
               _newUser._LastName,
-              _newUser._Email,
+              NormalizeEmail(_newUser._Email),
               _newUser.age,
               password: Hash(_newUser.password),
               refreshToken: "");
@@ -54,9 +54,12 @@ namespace ECommBackend.Services
 
         // Null means "these credentials are not valid", deliberately without saying which half was wrong.
         public async Task<UserModel?> AuthenticateUser(CancellationToken ctx, DTOLogin _userLogin) {
-          var user = await _userRepo.GetSingleUser(ctx, _userLogin);
+          var user = await _userRepo.GetSingleUser(ctx, _userLogin with { email = NormalizeEmail(_userLogin.email) });
           return Verify(_userLogin.password, user?.Password) ? user : null;
         }
+
+        // Register and login must agree on the stored form, or stray whitespace/casing makes an account unreachable.
+        private static string NormalizeEmail(string email) => email.Trim().ToLowerInvariant();
         //public Task UpdateUser(CancellationToken ctx,UserModel _user);
 
     }

@@ -1,9 +1,11 @@
+using System.Diagnostics;
 using Azure.Messaging.ServiceBus;
 using Azure.Messaging.ServiceBus.Administration;
 using Newtonsoft.Json;
 using ECommBackend.Models;
 using ECommBackend.Models.ModInterfaces;
 using ECommBackend.Repositories.RepoInterfaces;
+using Microsoft.Extensions.Options;
 
 
 namespace ECommBackend.Services
@@ -23,12 +25,12 @@ namespace ECommBackend.Services
         public AzureBackgroundService(
             ILogger<AzureBackgroundService> logger,
             IServiceScopeFactory scopeFactory,
-            IConfiguration configuration)
+            IOptions<ServiceBusSettings> serviceBusSettings)
         {
             _logger = logger;
             _scopeFactory = scopeFactory;
 
-            var connectionString = configuration.GetSection("SecretKeys")["PrimaryConn"];
+            var connectionString = serviceBusSettings.Value.PrimaryConn;
             _serviceBusClient = new ServiceBusClient(connectionString);
             _serviceBusAdministrationClient = new ServiceBusAdministrationClient(connectionString);
         }
@@ -42,8 +44,6 @@ namespace ECommBackend.Services
                     AzureServiceBusClass.OrderQueueOptions(), stoppingToken);
             }
 
-            // Basic tier has no sessions, so a single receiver handling one message at a time
-            // keeps stock reservations from racing each other.
             await using var receiver = _serviceBusClient.CreateReceiver(QueueName);
 
             try
@@ -83,6 +83,37 @@ namespace ECommBackend.Services
             ServiceBusReceivedMessage message,
             CancellationToken ctx)
         {
+            using var activity = MessageTracing.StartProcess(
+                OrderTelemetry.Source,
+                QueueName,
+                message.MessageId,
+                message.DeliveryCount,
+                message.ApplicationProperties);
+
+            var started = Stopwatch.GetTimestamp();
+            var outcome = OrderTelemetry.OutcomeFailed;
+            try
+            {
+                outcome = await ProcessOrderAsync(receiver, message, activity, ctx);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                activity.RecordException(ex);
+                throw;
+            }
+            finally
+            {
+                activity?.SetTag("order.outcome", outcome);
+                OrderTelemetry.RecordProcessed(outcome, Stopwatch.GetElapsedTime(started));
+            }
+        }
+
+        private async Task<string> ProcessOrderAsync(
+            ServiceBusReceiver receiver,
+            ServiceBusReceivedMessage message,
+            Activity? activity,
+            CancellationToken ctx)
+        {
             OrderModel? order;
             try
             {
@@ -92,23 +123,24 @@ namespace ECommBackend.Services
             {
                 _logger.LogError(ex, "Message {MessageId} isn't a readable order", message.MessageId);
                 await receiver.DeadLetterMessageAsync(message, "UnreadablePayload", ex.Message, ctx);
-                return;
+                return "dead_lettered";
             }
 
             if (order is null || order.Products.Count == 0)
             {
                 _logger.LogError("Message {MessageId} carries no products", message.MessageId);
                 await receiver.DeadLetterMessageAsync(message, "NoProducts", "Order carries no products", ctx);
-                return;
+                return "dead_lettered";
             }
+
+            activity?.SetTag("order.id", order.OrderId);
 
             using var scope = _scopeFactory.CreateScope();
             var variantService = scope.ServiceProvider.GetRequiredService<VariantService>();
             var orderService = scope.ServiceProvider.GetRequiredService<OrderService>();
             var orderRepo = scope.ServiceProvider.GetRequiredService<IOrderRepo>();
 
-            // No duplicate detection on Basic tier: a resend or a redelivery after a crash
-            // must not reserve stock twice, so only Pending orders are handled.
+
             var storedOrder = await orderRepo.GetSingleOrder(order.OrderId, ctx);
             if (storedOrder.OrderStatus != OrderStatus.Pending)
             {
@@ -118,7 +150,7 @@ namespace ECommBackend.Services
                     storedOrder.OrderStatus,
                     message.MessageId);
                 await receiver.CompleteMessageAsync(message, ctx);
-                return;
+                return "duplicate";
             }
 
             if (!TryBuildReservations(order, out var reservations, out var rejectionReason))
@@ -128,19 +160,21 @@ namespace ECommBackend.Services
                     order.OrderId,
                     rejectionReason);
 
+                activity?.SetTag("order.rejection_reason", rejectionReason);
                 await orderService.UpdateOrderStatus(order.OrderId, OrderStatus.Rejected, ctx);
                 await receiver.CompleteMessageAsync(message, ctx);
-                return;
+                return "rejected";
             }
 
        
             if (!await variantService.TryReserveUnits(reservations, ctx))
             {
                 _logger.LogWarning("Order {OrderId} rejected: insufficient stock", order.OrderId);
+                activity?.SetTag("order.rejection_reason", "insufficient stock");
 
                 await orderService.UpdateOrderStatus(order.OrderId, OrderStatus.Rejected, ctx);
                 await receiver.CompleteMessageAsync(message, ctx);
-                return;
+                return "rejected";
             }
 
             await orderService.UpdateOrderStatus(order.OrderId, OrderStatus.Processed, ctx);
@@ -150,6 +184,7 @@ namespace ECommBackend.Services
                 "Order {OrderId} processed, {LineCount} variant(s) reserved",
                 order.OrderId,
                 reservations.Count);
+            return "processed";
         }
 
 

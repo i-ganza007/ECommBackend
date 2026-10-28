@@ -17,6 +17,17 @@ namespace ECommBackend.DTOs.MapToDomain
                 );
         }
 
+        public static OrderSummaryDTO ModelToSummaryDTO(this OrderModel _order) {
+
+            return new OrderSummaryDTO(
+                _order.OrderId,
+                _order.TotalPrice,
+                _order.OrderCreatorId,
+                _order.CreatedDate,
+                _order.OrderStatus
+                );
+        }
+
         //public static OrderDTO ModelToRecordDTOExtension(this OrderModel _order) {
         
         //}

@@ -3,6 +3,14 @@ using ECommBackend.Models.ModInterfaces;
 
 namespace ECommBackend.Repositories.RepoInterfaces
 {
+    public enum FinalizeResult
+    {
+        Processed,
+        Rejected,
+        Cancelled,
+        AlreadyFinalized
+    }
+
     public interface IOrderRepo
     {
         public Task<OrderModel> GetSingleOrder(Guid _orderId, CancellationToken ctx);
@@ -14,7 +22,10 @@ namespace ECommBackend.Repositories.RepoInterfaces
 
         public Task<long> CountPendingOrders(CancellationToken ctx);
 
-        
+        public Task<FinalizeResult> TryFinalizeOrder(Guid _orderId, IReadOnlyCollection<VariantReservation> reservations, CancellationToken ctx);
+
+        public Task<OrderModel> CancelOrder(Guid _orderId, Guid _userId, CancellationToken ctx);
+
 
         public Task<UserModel> GetOrderCreator(Guid _userId, CancellationToken ctx);
     }

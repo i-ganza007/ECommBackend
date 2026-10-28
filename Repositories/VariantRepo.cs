@@ -61,20 +61,10 @@ namespace ECommBackend.Repositories
 
             await using var transaction = await _SQLiteConn.Database.BeginTransactionAsync(ctx);
 
-            foreach (var reservation in reservations)
+            if (!await VariantReservations.TryApplyAsync(_SQLiteConn, reservations, ctx))
             {
-               
-                var rowsAffected = await _SQLiteConn.Variants
-                    .Where(x => x.VariantId == reservation.VariantId && x.Units >= reservation.Quantity)
-                    .ExecuteUpdateAsync(
-                        setters => setters.SetProperty(x => x.Units, x => x.Units - reservation.Quantity),
-                        ctx); // Runs immediately instead of defering like savechanges() .
-
-                if (rowsAffected != 1)
-                {
-                    await transaction.RollbackAsync(ctx);
-                    return false;
-                }
+                await transaction.RollbackAsync(ctx);
+                return false;
             }
 
             await transaction.CommitAsync(ctx);

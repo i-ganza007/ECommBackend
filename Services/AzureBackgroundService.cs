@@ -134,48 +134,49 @@ namespace ECommBackend.Services
             activity?.SetTag("order.id", order.OrderId);
 
             using var scope = _scopeFactory.CreateScope();
-            var variantService = scope.ServiceProvider.GetRequiredService<VariantService>();
             var orderService = scope.ServiceProvider.GetRequiredService<OrderService>();
             var orderRepo = scope.ServiceProvider.GetRequiredService<IOrderRepo>();
 
 
             var storedOrder = await orderRepo.GetSingleOrder(order.OrderId, ctx);
+            if (storedOrder.OrderStatus == OrderStatus.Cancelled)
+            {
+                return await SkipCancelledOrderAsync(receiver, message, order.OrderId, ctx);
+            }
+
             if (storedOrder.OrderStatus != OrderStatus.Pending)
             {
-                _logger.LogInformation(
-                    "Order {OrderId} already {Status}, skipping duplicate message {MessageId}",
-                    order.OrderId,
-                    storedOrder.OrderStatus,
-                    message.MessageId);
-                await receiver.CompleteMessageAsync(message, ctx);
-                return "duplicate";
+                return await SkipDuplicateAsync(receiver, message, order.OrderId, storedOrder.OrderStatus, ctx);
             }
 
-            if (!TryBuildReservations(order, out var reservations, out var rejectionReason))
+            // When some product has nothing in stock the reservations come back empty, and
+            // TryFinalizeOrder rejects the order inside the same guarded transaction.
+            var hasStockForEveryProduct = TryBuildReservations(order, out var reservations, out var rejectionDetail);
+
+            var result = await orderRepo.TryFinalizeOrder(order.OrderId, reservations, ctx);
+            switch (result)
             {
-                _logger.LogWarning(
-                    "Order {OrderId} rejected: {Reason}",
-                    order.OrderId,
-                    rejectionReason);
+                case FinalizeResult.Cancelled:
+                    return await SkipCancelledOrderAsync(receiver, message, order.OrderId, ctx);
 
-                activity?.SetTag("order.rejection_reason", "no_variant_in_stock");
-                await orderService.UpdateOrderStatus(order.OrderId, OrderStatus.Rejected, storedOrder.CreatedDate, ctx, "no_variant_in_stock");
-                await receiver.CompleteMessageAsync(message, ctx);
-                return "rejected";
+                case FinalizeResult.AlreadyFinalized:
+                    return await SkipDuplicateAsync(receiver, message, order.OrderId, null, ctx);
+
+                case FinalizeResult.Rejected:
+                    var rejectionReason = hasStockForEveryProduct ? "insufficient_stock" : "no_variant_in_stock";
+                    _logger.LogWarning(
+                        "Order {OrderId} rejected: {Reason} {Detail}",
+                        order.OrderId,
+                        rejectionReason,
+                        rejectionDetail);
+
+                    activity?.SetTag("order.rejection_reason", rejectionReason);
+                    await orderService.OnOrderFinalized(order.OrderId, OrderTelemetry.OutcomeRejected, storedOrder.CreatedDate, ctx, rejectionReason);
+                    await receiver.CompleteMessageAsync(message, ctx);
+                    return "rejected";
             }
 
-       
-            if (!await variantService.TryReserveUnits(reservations, ctx))
-            {
-                _logger.LogWarning("Order {OrderId} rejected: insufficient stock", order.OrderId);
-                activity?.SetTag("order.rejection_reason", "insufficient_stock");
-
-                await orderService.UpdateOrderStatus(order.OrderId, OrderStatus.Rejected, storedOrder.CreatedDate, ctx, "insufficient_stock");
-                await receiver.CompleteMessageAsync(message, ctx);
-                return "rejected";
-            }
-
-            await orderService.UpdateOrderStatus(order.OrderId, OrderStatus.Processed, storedOrder.CreatedDate, ctx);
+            await orderService.OnOrderFinalized(order.OrderId, OrderTelemetry.OutcomeConfirmed, storedOrder.CreatedDate, ctx);
             await receiver.CompleteMessageAsync(message, ctx);
 
             _logger.LogInformation(
@@ -185,6 +186,36 @@ namespace ECommBackend.Services
             return OrderTelemetry.OutcomeConfirmed;
         }
 
+
+        private async Task<string> SkipCancelledOrderAsync(
+            ServiceBusReceiver receiver,
+            ServiceBusReceivedMessage message,
+            Guid orderId,
+            CancellationToken ctx)
+        {
+            _logger.LogInformation(
+                "Order {OrderId} was cancelled, skipping message {MessageId}",
+                orderId,
+                message.MessageId);
+            await receiver.CompleteMessageAsync(message, ctx);
+            return "cancelled_skipped";
+        }
+
+        private async Task<string> SkipDuplicateAsync(
+            ServiceBusReceiver receiver,
+            ServiceBusReceivedMessage message,
+            Guid orderId,
+            OrderStatus? status,
+            CancellationToken ctx)
+        {
+            _logger.LogInformation(
+                "Order {OrderId} already {Status}, skipping duplicate message {MessageId}",
+                orderId,
+                status?.ToString() ?? "finalized",
+                message.MessageId);
+            await receiver.CompleteMessageAsync(message, ctx);
+            return "duplicate";
+        }
 
         private static bool TryBuildReservations(
             OrderModel order,

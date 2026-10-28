@@ -12,6 +12,7 @@ namespace ECommBackend.Services
 
         public const string OutcomeConfirmed = "confirmed";
         public const string OutcomeRejected = "rejected";
+        public const string OutcomeCancelled = "cancelled";
 
         private static readonly Counter<long> OrdersPlaced = Meter.CreateCounter<long>(
             "ecomm.orders.placed", "{order}", "Orders accepted by the API and queued for processing");

@@ -33,26 +33,26 @@ namespace ECommBackend.Services
           return result.Select(x=>x.ModelToRecordDTO());
         }
 
-        public async Task UpdateOrderStatus(
+        // Called once the final status is saved: records the outcome and tells the buyer.
+        public async Task OnOrderFinalized(
             Guid _orderId,
-            OrderStatus status,
+            string outcome,
             DateTime createdAtUtc,
             CancellationToken ctx,
             string? rejectionReason = null)
         {
-             await _orderRepo.UpdateOrder(_orderId, status, ctx);
+             OrderTelemetry.RecordFinalized(
+                 outcome,
+                 rejectionReason,
+                 Math.Max(0, (DateTime.UtcNow - DateTime.SpecifyKind(createdAtUtc, DateTimeKind.Utc)).TotalMilliseconds));
+             await PublishOrderEmail(_orderId, ctx);
+        }
 
-             if (status is OrderStatus.Processed or OrderStatus.Rejected)
-             {
-                 var outcome = status == OrderStatus.Processed
-                     ? OrderTelemetry.OutcomeConfirmed
-                     : OrderTelemetry.OutcomeRejected;
-                 OrderTelemetry.RecordFinalized(
-                     outcome,
-                     rejectionReason,
-                     Math.Max(0, (DateTime.UtcNow - DateTime.SpecifyKind(createdAtUtc, DateTimeKind.Utc)).TotalMilliseconds));
-                 await PublishOrderEmail(_orderId, ctx);
-             }
+        public async Task<OrderSummaryDTO> CancelOrder(Guid _orderId, Guid _userId, CancellationToken ctx) {
+             var order = await _orderRepo.CancelOrder(_orderId, _userId, ctx);
+             Activity.Current?.SetTag("order.id", _orderId);
+             await OnOrderFinalized(_orderId, OrderTelemetry.OutcomeCancelled, order.CreatedDate, ctx);
+             return order.ModelToSummaryDTO();
         }
 
         private async Task PublishOrderEmail(Guid _orderId, CancellationToken ctx) {
@@ -76,9 +76,12 @@ namespace ECommBackend.Services
            GuardAllProductsExist(productIds, products);
             var orderId = Guid.NewGuid();
 
+           // The variant priced here is the one the processor reserves.
+           var lines = products.Select(product => (Product: product, Variant: ResolveVariant(product))).ToList();
+
            var newOrder = new OrderModel(
                orderId,
-               (double)products.Sum(ResolveUnitPrice),
+               (double)lines.Sum(line => line.Variant.Price),
                orderCreatorId,
                DateTime.UtcNow,
                OrderStatus.Pending);
@@ -92,45 +95,41 @@ namespace ECommBackend.Services
             OrderTelemetry.RecordPlaced(newOrder.TotalPrice);
             Activity.Current?.SetTag("order.id", orderId);
 
-           foreach (var product in products)
-           {
-                foreach(var variant in product.Variants)
-                {
-                   
-                    var variantCopy = new VariantModel(
-                        variant.VariantId,
-                        variant.Size,
-                        variant.Price,
-                        variant.ProductModelId,
-                        variant.Units,
-                        variant.VariantImageId);
-
-                    var productVar = new ProductModel(
-                        product.ProductId,
-                        product.Base_SKU,
-                        product.Name,
-                        product.Description,
-                        product.AdminOwnerId,
-                        product.CategoryId,
-                        texture: product.Texture,
-                        skin_Type: product.Skin_Type,
-                        key_Ingr: product.Key_Ingr
-                        ){Variants=new List<VariantModel> { variantCopy } };
-
-
-                    var orderMess = new OrderModel(
-                        orderId,
-                        (double)variant.Price,
-                        orderCreatorId,
-                        DateTime.Now,
-                        OrderStatus.Pending
-                        )
-                    { Products=new List<ProductModel> { productVar } };
-                    await _azureBus.CreateOrder(orderMess);
-                }
-           }
+           // One message per order: its MessageId is the order id, so a second message for the same
+           // order would be skipped as a duplicate. Copies keep EF navigation cycles out of the JSON.
+           var orderMess = new OrderModel(
+               orderId,
+               newOrder.TotalPrice,
+               orderCreatorId,
+               newOrder.CreatedDate,
+               OrderStatus.Pending
+               )
+           { Products = lines.Select(line => ToMessageProduct(line.Product, line.Variant)).ToList() };
+           await _azureBus.CreateOrder(orderMess);
 
             return orderId;
+        }
+
+        private static ProductModel ToMessageProduct(ProductModel product, VariantModel variant) {
+            var variantCopy = new VariantModel(
+                variant.VariantId,
+                variant.Size,
+                variant.Price,
+                variant.ProductModelId,
+                variant.Units,
+                variant.VariantImageId);
+
+            return new ProductModel(
+                product.ProductId,
+                product.Base_SKU,
+                product.Name,
+                product.Description,
+                product.AdminOwnerId,
+                product.CategoryId,
+                texture: product.Texture,
+                skin_Type: product.Skin_Type,
+                key_Ingr: product.Key_Ingr
+                ){Variants=new List<VariantModel> { variantCopy } };
         }
 
         private static List<Guid> ParseProductIds(ICollection<string> rawIds) {
@@ -161,7 +160,7 @@ namespace ECommBackend.Services
         }
 
 
-        private static decimal ResolveUnitPrice(ProductModel product) {
+        private static VariantModel ResolveVariant(ProductModel product) {
             var variant = product.Variants
                 .Where(x => x.Units > 0)
                 .OrderBy(x => x.Price)
@@ -172,7 +171,7 @@ namespace ECommBackend.Services
                 throw new VariantNotFoundError(product.ProductId, $"Product {product.ProductId} has no variant in stock");
             }
 
-            return variant.Price;
+            return variant;
         }
 
         public async Task<UserDTO> GetOrderCreator(Guid _userId, CancellationToken ctx) { 

@@ -4,7 +4,9 @@ namespace ECommBackend.Models.ModInterfaces
     {
         Pending,
         Processed,
-        Rejected
+        Rejected,
+        // Appended so the stored ints and ConsumerProject's copy of this enum keep their meaning.
+        Cancelled
     }
     public interface IOrder
     {

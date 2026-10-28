@@ -40,6 +40,8 @@ public class EmailSender
                 "Good news, your order has been confirmed and is being prepared."),
             OrderStatus.Rejected => ($"Your order {order.OrderId} couldn't be completed",
                 "Sorry, we couldn't complete your order because some items are out of stock. You haven't been charged."),
+            OrderStatus.Cancelled => ($"Your order {order.OrderId} was cancelled",
+                "Your order has been cancelled as you requested. You haven't been charged."),
             _ => ($"Update on your order {order.OrderId}",
                 $"Your order is now {order.OrderStatus}.")
         };

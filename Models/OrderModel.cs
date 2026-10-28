@@ -25,6 +25,9 @@ namespace ECommBackend.Models
         [Required]
         public required OrderStatus OrderStatus { get; set; }
 
+        // Concurrency token: SQLite has no rowversion, so every status change must set a fresh value.
+        public Guid Version { get; set; }
+
         [SetsRequiredMembers]
         public OrderModel(Guid orderId, double totalPrice, Guid orderCreatorId, DateTime createdDate ,OrderStatus orderStatus) {
         OrderId = orderId;
@@ -32,6 +35,7 @@ namespace ECommBackend.Models
             OrderCreatorId = orderCreatorId;
             CreatedDate = createdDate;
             OrderStatus = orderStatus;
+            Version = Guid.NewGuid();
         }
 
         public void Deconstruct(

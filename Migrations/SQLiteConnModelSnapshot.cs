@@ -15,7 +15,7 @@ namespace ECommBackend.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "10.0.11");
+            modelBuilder.HasAnnotation("ProductVersion", "10.0.13");
 
             modelBuilder.Entity("ECommBackend.Models.AdminModel", b =>
                 {
@@ -122,6 +122,10 @@ namespace ECommBackend.Migrations
 
                     b.Property<double>("TotalPrice")
                         .HasColumnType("REAL");
+
+                    b.Property<Guid>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("TEXT");
 
                     b.HasKey("OrderId");
 

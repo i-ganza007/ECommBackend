@@ -3,7 +3,9 @@ using ECommBackend.DTOs.FrontendDTO;
 using ECommBackend.Models;
 using ECommBackend.Repositories.RepoInterfaces;
 using ECommBackend.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace ECommBackend.Controllers
 {
@@ -31,7 +33,7 @@ namespace ECommBackend.Controllers
         }
 
 
-        [HttpGet("{orderId}")]
+        [HttpGet("{orderId}/status")]
         public async Task<IActionResult> GetOrderStatus(string orderId, CancellationToken ctx)
         {
             var result = await _orderRepo.GetSingleOrder(Guid.Parse(orderId), ctx);
@@ -61,6 +63,36 @@ namespace ECommBackend.Controllers
                 return NotFound(ex.Message);
             }
             catch (VariantNotFoundError ex)
+            {
+                return Conflict(ex.Message);
+            }
+        }
+
+        [Authorize(Policy = "users")]
+        [HttpPost("{orderId}/cancel")]
+        public async Task<IActionResult> CancelOrder(string orderId, CancellationToken ctx)
+        {
+            if (!Guid.TryParse(orderId, out var parsedOrderId))
+            {
+                return BadRequest($"'{orderId}' is not a valid order id");
+            }
+
+            // Ownership is checked against the token, not a header the caller controls.
+            if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+            {
+                return Unauthorized();
+            }
+
+            try
+            {
+                var order = await _orderService.CancelOrder(parsedOrderId, userId, ctx);
+                return Ok(order);
+            }
+            catch (OrderNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (OrderNotPendingError ex)
             {
                 return Conflict(ex.Message);
             }

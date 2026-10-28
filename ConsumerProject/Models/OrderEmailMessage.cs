@@ -4,7 +4,8 @@ public enum OrderStatus
 {
     Pending,
     Processed,
-    Rejected
+    Rejected,
+    Cancelled
 }
 
 public record OrderEmailMessage(

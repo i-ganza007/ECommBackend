@@ -60,6 +60,11 @@ namespace ECommBackend.DatabaseConns
                         .WithOne(c => c.ParentCategory)
                         .HasForeignKey(c => c.ParentCategoryId);
 
+            // A cancellation and the order processor can race on the same order; exactly one save may win.
+            modelBuilder.Entity<OrderModel>()
+                .Property(o => o.Version)
+                .IsConcurrencyToken();
+
 
 
             modelBuilder.Entity<CategoryModel>()

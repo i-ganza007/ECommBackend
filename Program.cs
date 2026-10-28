@@ -19,10 +19,8 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
 builder.Services.AddControllers();
 
-// Scalar renders whatever this document describes, so it has to be generated first.
 builder.Services.AddOpenApi(options =>
 {
     options.AddDocumentTransformer((document, context, cancellationToken) =>
@@ -38,17 +36,14 @@ builder.Services.AddDbContext<SQLiteConn>(options =>
 {
     options.UseSqlite(builder.Configuration.GetConnectionString("ECommSQLite"));
 });
-// Tagged so /health/db runs only this check, and /health/live never waits on the database.
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<SQLiteConn>("database", tags: ["db"]);
 builder.Logging.ClearProviders();
 
-// After ClearProviders, or it would remove the OpenTelemetry logger that ships logs to Aspire.
-builder.AddServiceDefaults();
+builder.AddServiceDefaults("inventory-api");
 builder.Services.ConfigureOpenTelemetryTracerProvider(tracing => tracing.AddEntityFrameworkCoreInstrumentation());
-// EF Core's own meter: active DbContexts, queries, SaveChanges, optimistic concurrency failures.
 builder.Services.ConfigureOpenTelemetryMeterProvider(metrics => metrics.AddMeter("Microsoft.EntityFrameworkCore"));
-builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JWTSettings")); // Maps JWTSettings to the appsettings.json
+builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JWTSettings"));
 builder.Services.AddOptions<ServiceBusSettings>()
     .Bind(builder.Configuration.GetSection("SecretKeys"))
     .ValidateDataAnnotations()
@@ -57,7 +52,6 @@ builder.Services.AddOptions<ServiceBusSettings>()
 builder.Host.UseSerilog((context, services, loggerConfig) => loggerConfig
     .ReadFrom.Configuration(context.Configuration)
     .ReadFrom.Services(services),
-    // Hands Serilog events on to the OpenTelemetry logger too, so they show up in the dashboard.
     writeToProviders: true);
 
 builder.Services.AddScoped<IProductRepo,ProductRepo>();
@@ -79,16 +73,12 @@ builder.Services.AddScoped<CategoryService>();
 
 
 builder.Services.AddHostedService<AzureBackgroundService>();
+builder.Services.AddHostedService<PendingOrdersGaugeService>();
 
 builder.Services.AddScoped<GlobalExceptionLayer>();
 builder.Services.AddScoped<OperationCancelledHandler>();
 
 builder.Services.AddOptions<JwtSettings>().BindConfiguration("JWTSettings");
-//builder.Services.AddDbContext<SQLConn>(options =>
-//{
-//    options.UseSql(builder.Configuration.GetConnectionString("ECommSQLite"));
-//});
-
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -112,7 +102,6 @@ builder.Services.AddAuthentication(options =>
         ClockSkew = TimeSpan.FromMinutes(1)
     };
 
-    // Custom event handlers for detailed logging
     options.Events = new JwtBearerEvents
     {
         OnAuthenticationFailed = context =>
@@ -145,7 +134,6 @@ app.MapHealthChecks("/health/live", new HealthCheckOptions
 {
     Predicate = check => check.Tags.Contains("live")
 });
-// Database: can we reach SQLite? Returns 503 when it can't.
 app.MapHealthChecks("/health/db", new HealthCheckOptions
 {
     Predicate = check => check.Tags.Contains("db"),
@@ -160,7 +148,6 @@ if (!app.Environment.IsDevelopment())
 
 app.UseMiddleware<GlobalExceptionLayer>();
 app.UseMiddleware<OperationCancelledHandler>();
-
 app.UseSerilogRequestLogging();
 
 app.UseHttpsRedirection();
@@ -171,17 +158,19 @@ app.UseAuthorization();
 
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();                 // serves /openapi/v1.json
-    app.MapScalarApiReference();      // serves the UI at /scalar
+    app.MapOpenApi();
+    app.MapScalarApiReference();
 }
 
 app.MapControllers();
+app.MapGet("/version", (IConfiguration configuration) => Results.Ok(new
+{
+    version = configuration["APP_VERSION"] ?? "unknown"
+}));
 app.MapDefaultEndpoints();
 
 app.Run();
 
-// Status per check plus how long it took, instead of the default plain "Healthy"/"Unhealthy" text.
-// Exception details are left out so a failing probe doesn't leak connection info.
 static Task WriteHealthJson(HttpContext context, HealthReport report)
 {
     context.Response.ContentType = "application/json";

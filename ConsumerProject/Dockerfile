@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 COPY Directory.Build.props Directory.Packages.props ./
 COPY ConsumerProject/ConsumerProject.csproj ConsumerProject/
@@ -12,5 +12,8 @@ FROM mcr.microsoft.com/dotnet/aspnet:10.0
 
 WORKDIR /app
 COPY --from=build /app/published_code .
+
+ARG APP_VERSION=unknown
+ENV APP_VERSION=${APP_VERSION}
 
 ENTRYPOINT ["dotnet", "ConsumerProject.dll"]

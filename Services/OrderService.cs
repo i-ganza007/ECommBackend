@@ -33,11 +33,24 @@ namespace ECommBackend.Services
           return result.Select(x=>x.ModelToRecordDTO());
         }
 
-        public async Task UpdateOrderStatus(Guid _orderId,OrderStatus status,CancellationToken ctx) {
+        public async Task UpdateOrderStatus(
+            Guid _orderId,
+            OrderStatus status,
+            DateTime createdAtUtc,
+            CancellationToken ctx,
+            string? rejectionReason = null)
+        {
              await _orderRepo.UpdateOrder(_orderId, status, ctx);
 
              if (status is OrderStatus.Processed or OrderStatus.Rejected)
              {
+                 var outcome = status == OrderStatus.Processed
+                     ? OrderTelemetry.OutcomeConfirmed
+                     : OrderTelemetry.OutcomeRejected;
+                 OrderTelemetry.RecordFinalized(
+                     outcome,
+                     rejectionReason,
+                     Math.Max(0, (DateTime.UtcNow - DateTime.SpecifyKind(createdAtUtc, DateTimeKind.Utc)).TotalMilliseconds));
                  await PublishOrderEmail(_orderId, ctx);
              }
         }
@@ -76,7 +89,7 @@ namespace ECommBackend.Services
            }
 
             await _orderRepo.CreateOrder(newOrder, ctx);
-            OrderTelemetry.RecordPlaced(newOrder.TotalPrice, products.Count);
+            OrderTelemetry.RecordPlaced(newOrder.TotalPrice);
             Activity.Current?.SetTag("order.id", orderId);
 
            foreach (var product in products)

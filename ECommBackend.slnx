@@ -1,4 +1,7 @@
 <Solution>
   <Project Path="ECommBackend.csproj" />
   <Project Path="ECommBackend.Tests/ECommBackend.Tests.csproj" />
+  <Project Path="ConsumerProject/ConsumerProject.csproj" />
+  <Project Path="ECommBackend.ServiceDefaults/ECommBackend.ServiceDefaults.csproj" />
+  <Project Path="ECommBackend.AppHost/ECommBackend.AppHost.csproj" />
 </Solution>

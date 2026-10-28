@@ -1,16 +1,18 @@
+using System.Diagnostics;
 using Azure.Messaging.ServiceBus;
 using Azure.Messaging.ServiceBus.Administration;
 using Newtonsoft.Json;
 using ECommBackend.Models;
 using ECommBackend.Models.ModInterfaces;
 using ECommBackend.Repositories.RepoInterfaces;
+using Microsoft.Extensions.Options;
 
 
 namespace ECommBackend.Services
 {
     public class AzureBackgroundService:BackgroundService
     {
-        private const string QueueName = "OrderPlaced";
+        private const string QueueName = AzureServiceBusClass.OrderQueueName;
 
         private readonly ILogger<AzureBackgroundService> _logger;
 
@@ -23,12 +25,12 @@ namespace ECommBackend.Services
         public AzureBackgroundService(
             ILogger<AzureBackgroundService> logger,
             IServiceScopeFactory scopeFactory,
-            IConfiguration configuration)
+            IOptions<ServiceBusSettings> serviceBusSettings)
         {
             _logger = logger;
             _scopeFactory = scopeFactory;
 
-            var connectionString = configuration.GetSection("SecretKeys")["PrimaryConn"];
+            var connectionString = serviceBusSettings.Value.PrimaryConn;
             _serviceBusClient = new ServiceBusClient(connectionString);
             _serviceBusAdministrationClient = new ServiceBusAdministrationClient(connectionString);
         }
@@ -37,9 +39,12 @@ namespace ECommBackend.Services
         {
             if (!await _serviceBusAdministrationClient.QueueExistsAsync(QueueName, stoppingToken))
             {
-                _logger.LogError("Queue {QueueName} doesn't exist in the current scope", QueueName);
-                return;
+                _logger.LogWarning("Queue {QueueName} doesn't exist, creating it", QueueName);
+                await _serviceBusAdministrationClient.CreateQueueAsync(
+                    AzureServiceBusClass.OrderQueueOptions(), stoppingToken);
             }
+
+            await using var receiver = _serviceBusClient.CreateReceiver(QueueName);
 
             try
             {
@@ -47,7 +52,13 @@ namespace ECommBackend.Services
                 {
                     try
                     {
-                        await DrainNextSessionAsync(stoppingToken);
+                        var message = await receiver.ReceiveMessageAsync(cancellationToken: stoppingToken);
+                        if (message is null)
+                        {
+                            continue;
+                        }
+
+                        await HandleOrderPlacedAsync(receiver, message, stoppingToken);
                     }
                     catch (ServiceBusException ex) when (ex.Reason == ServiceBusFailureReason.ServiceTimeout)
                     {
@@ -55,7 +66,7 @@ namespace ECommBackend.Services
                     }
                     catch (Exception ex) when (ex is not OperationCanceledException)
                     {
-                        _logger.LogError(ex, "Session processing on {QueueName} failed", QueueName);
+                        _logger.LogError(ex, "Message processing on {QueueName} failed", QueueName);
                         await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
                     }
                 }
@@ -66,28 +77,41 @@ namespace ECommBackend.Services
             }
         }
 
-      
-        private async Task DrainNextSessionAsync(CancellationToken stoppingToken)
+
+        private async Task HandleOrderPlacedAsync(
+            ServiceBusReceiver receiver,
+            ServiceBusReceivedMessage message,
+            CancellationToken ctx)
         {
-            await using var receiver = await _serviceBusClient.AcceptNextSessionAsync(
+            using var activity = MessageTracing.StartProcess(
+                OrderTelemetry.Source,
                 QueueName,
-                cancellationToken: stoppingToken);
+                message.MessageId,
+                message.DeliveryCount,
+                message.ApplicationProperties);
 
-            while (!stoppingToken.IsCancellationRequested)
+            var started = Stopwatch.GetTimestamp();
+            var outcome = OrderTelemetry.OutcomeFailed;
+            try
             {
-                var message = await receiver.ReceiveMessageAsync(cancellationToken: stoppingToken);
-                if (message is null)
-                {
-                    return;
-                }
-
-                await HandleOrderPlacedAsync(receiver, message, stoppingToken);
+                outcome = await ProcessOrderAsync(receiver, message, activity, ctx);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                activity.RecordException(ex);
+                throw;
+            }
+            finally
+            {
+                activity?.SetTag("order.outcome", outcome);
+                OrderTelemetry.RecordProcessed(outcome, Stopwatch.GetElapsedTime(started));
             }
         }
 
-        private async Task HandleOrderPlacedAsync(
-            ServiceBusSessionReceiver receiver,
+        private async Task<string> ProcessOrderAsync(
+            ServiceBusReceiver receiver,
             ServiceBusReceivedMessage message,
+            Activity? activity,
             CancellationToken ctx)
         {
             OrderModel? order;
@@ -99,19 +123,35 @@ namespace ECommBackend.Services
             {
                 _logger.LogError(ex, "Message {MessageId} isn't a readable order", message.MessageId);
                 await receiver.DeadLetterMessageAsync(message, "UnreadablePayload", ex.Message, ctx);
-                return;
+                return "dead_lettered";
             }
 
             if (order is null || order.Products.Count == 0)
             {
                 _logger.LogError("Message {MessageId} carries no products", message.MessageId);
                 await receiver.DeadLetterMessageAsync(message, "NoProducts", "Order carries no products", ctx);
-                return;
+                return "dead_lettered";
             }
+
+            activity?.SetTag("order.id", order.OrderId);
 
             using var scope = _scopeFactory.CreateScope();
             var variantService = scope.ServiceProvider.GetRequiredService<VariantService>();
             var orderService = scope.ServiceProvider.GetRequiredService<OrderService>();
+            var orderRepo = scope.ServiceProvider.GetRequiredService<IOrderRepo>();
+
+
+            var storedOrder = await orderRepo.GetSingleOrder(order.OrderId, ctx);
+            if (storedOrder.OrderStatus != OrderStatus.Pending)
+            {
+                _logger.LogInformation(
+                    "Order {OrderId} already {Status}, skipping duplicate message {MessageId}",
+                    order.OrderId,
+                    storedOrder.OrderStatus,
+                    message.MessageId);
+                await receiver.CompleteMessageAsync(message, ctx);
+                return "duplicate";
+            }
 
             if (!TryBuildReservations(order, out var reservations, out var rejectionReason))
             {
@@ -120,19 +160,21 @@ namespace ECommBackend.Services
                     order.OrderId,
                     rejectionReason);
 
+                activity?.SetTag("order.rejection_reason", rejectionReason);
                 await orderService.UpdateOrderStatus(order.OrderId, OrderStatus.Rejected, ctx);
                 await receiver.CompleteMessageAsync(message, ctx);
-                return;
+                return "rejected";
             }
 
        
             if (!await variantService.TryReserveUnits(reservations, ctx))
             {
                 _logger.LogWarning("Order {OrderId} rejected: insufficient stock", order.OrderId);
+                activity?.SetTag("order.rejection_reason", "insufficient stock");
 
                 await orderService.UpdateOrderStatus(order.OrderId, OrderStatus.Rejected, ctx);
                 await receiver.CompleteMessageAsync(message, ctx);
-                return;
+                return "rejected";
             }
 
             await orderService.UpdateOrderStatus(order.OrderId, OrderStatus.Processed, ctx);
@@ -142,6 +184,7 @@ namespace ECommBackend.Services
                 "Order {OrderId} processed, {LineCount} variant(s) reserved",
                 order.OrderId,
                 reservations.Count);
+            return "processed";
         }
 
 

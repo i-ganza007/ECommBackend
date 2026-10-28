@@ -90,8 +90,7 @@ namespace ECommBackend.Services
                 message.DeliveryCount,
                 message.ApplicationProperties);
 
-            var started = Stopwatch.GetTimestamp();
-            var outcome = OrderTelemetry.OutcomeFailed;
+            var outcome = "failed";
             try
             {
                 outcome = await ProcessOrderAsync(receiver, message, activity, ctx);
@@ -104,7 +103,6 @@ namespace ECommBackend.Services
             finally
             {
                 activity?.SetTag("order.outcome", outcome);
-                OrderTelemetry.RecordProcessed(outcome, Stopwatch.GetElapsedTime(started));
             }
         }
 
@@ -160,8 +158,8 @@ namespace ECommBackend.Services
                     order.OrderId,
                     rejectionReason);
 
-                activity?.SetTag("order.rejection_reason", rejectionReason);
-                await orderService.UpdateOrderStatus(order.OrderId, OrderStatus.Rejected, ctx);
+                activity?.SetTag("order.rejection_reason", "no_variant_in_stock");
+                await orderService.UpdateOrderStatus(order.OrderId, OrderStatus.Rejected, storedOrder.CreatedDate, ctx, "no_variant_in_stock");
                 await receiver.CompleteMessageAsync(message, ctx);
                 return "rejected";
             }
@@ -170,21 +168,21 @@ namespace ECommBackend.Services
             if (!await variantService.TryReserveUnits(reservations, ctx))
             {
                 _logger.LogWarning("Order {OrderId} rejected: insufficient stock", order.OrderId);
-                activity?.SetTag("order.rejection_reason", "insufficient stock");
+                activity?.SetTag("order.rejection_reason", "insufficient_stock");
 
-                await orderService.UpdateOrderStatus(order.OrderId, OrderStatus.Rejected, ctx);
+                await orderService.UpdateOrderStatus(order.OrderId, OrderStatus.Rejected, storedOrder.CreatedDate, ctx, "insufficient_stock");
                 await receiver.CompleteMessageAsync(message, ctx);
                 return "rejected";
             }
 
-            await orderService.UpdateOrderStatus(order.OrderId, OrderStatus.Processed, ctx);
+            await orderService.UpdateOrderStatus(order.OrderId, OrderStatus.Processed, storedOrder.CreatedDate, ctx);
             await receiver.CompleteMessageAsync(message, ctx);
 
             _logger.LogInformation(
                 "Order {OrderId} processed, {LineCount} variant(s) reserved",
                 order.OrderId,
                 reservations.Count);
-            return "processed";
+            return OrderTelemetry.OutcomeConfirmed;
         }
 
 

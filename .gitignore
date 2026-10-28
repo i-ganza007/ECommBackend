@@ -3,4 +3,5 @@ bin/
 obj/
 /Creds.json
 published_code/
+TestResults/
 /input.json

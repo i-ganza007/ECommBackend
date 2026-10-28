@@ -40,6 +40,9 @@ namespace ECommBackend.Repositories
             await _SQLiteConn.SaveChangesAsync(ctx);
         }
 
+        public Task<long> CountPendingOrders(CancellationToken ctx) =>
+            _SQLiteConn.Orders.LongCountAsync(x => x.OrderStatus == OrderStatus.Pending, ctx);
+
         public async  Task<Guid> CreateOrder(OrderModel order, CancellationToken ctx) {
             await _SQLiteConn.Orders.AddAsync(order, ctx);
             await _SQLiteConn.SaveChangesAsync(ctx);

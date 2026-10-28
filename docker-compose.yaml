@@ -34,7 +34,7 @@ services:
     volumes:
       - ./published_code:/app/published_code:cached
       - $APPDATA/Microsoft/UserSecrets:/root/.microsoft/usersecrets:ro
-  consumerProject:
+  consumerproject:
     build:
       context: .
       dockerfile: ConsumerProject/Dockerfile
